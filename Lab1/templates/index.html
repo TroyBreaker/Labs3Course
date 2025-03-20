@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Canvas Drawing</title>
+    <style>
+        .toolbar {
+            position
+            : relative;
+            z-index: 10;
+        }
+        #tool-lines {
+            cursor: pointer;
+            border: 1px solid #ccc;
+        }
+        #tool-lines:hover {
+            background: #e0e0e0;
+        }
+
+        #tool-curves {
+            cursor: pointer;
+            border: 1px solid #ccc;
+        }
+        #tool-curves:hover {
+            background: #e0e0e0;
+        }
+
+        #tool-interpolations {
+            cursor: pointer;
+            border: 1px solid #ccc;
+        }
+        #tool-interpolations:hover {
+            background: #e0e0e0;
+        }
+        
+        #lines-methods {
+            display: none;
+            position: absolute;
+            top: 18px;
+            left: 0;
+            background: #f9f9f9;
+            padding: 5px;
+            border: 1px solid #ccc;
+        }
+        #lines-methods li {
+            list-style: none;
+            cursor: pointer;
+        }
+        #lines-methods li:hover {
+            background: #e0e0e0;
+        }
+        #lines-methods li.active {
+            background: #ccc;
+        }
+
+        #curves-methods {
+            display: none;
+            position: absolute;
+            top: 18px;
+            left: 65px;
+            background: #f9f9f9;
+            padding: 5px;
+            border: 1px solid #ccc;
+        }
+        #curves-methods li {
+            list-style: none;
+            cursor: pointer;
+        }
+        #curves-methods li:hover {
+            background: #e0e0e0;
+        }
+        #curves-methods li.active {
+            background: #ccc;
+        }
+
+        #interpolations-methods {
+            display: none;
+            position: absolute;
+            top: 18px;
+            left: 200px;
+            background: #f9f9f9;
+            padding: 5px;
+            border: 1px solid #ccc;
+        }
+        #interpolations-methods li {
+            list-style: none;
+            cursor: pointer;
+        }
+        #interpolations-methods li:hover {
+            background: #e0e0e0;
+        }
+        #interpolations-methods li.active {
+            background: #ccc;
+        }
+
+        #canvas {
+            border: 2px solid black;
+        }
+
+        #canvasContainer {
+            position: relative;
+            margin-top: 20px;
+            border: 1px solid black;
+        }
+
+        #create_bpline {
+            margin-top: 5px;
+        }
+
+        .debug-button {
+          position: fixed;
+          top: 10px;
+          right: 10px;
+          background-color: #45ee03;
+          color: #ffffff;
+          padding: 10px 20px;
+          cursor: pointer;
+        }
+
+        #debugControls {
+          position: fixed;
+          top: 10px;
+          right: 10px;
+          background-color: #424246;
+          display: none;
+        }
+
+        #stepButton, #stopButton {
+          background-color: #007bff;
+          color: #fff;
+          padding: 5px 10px;
+          cursor: pointer;
+        }
+
+        .debug-hidden {
+          display: none;
+        }
+
+        .methods {
+            position
+            : relative;
+            z-index: 0;
+        }
+
+        .point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: red;
+            border-radius: 50%;
+            cursor: move;
+            z-index: 10;
+        }
+
+        #3dfigure-characteristics {
+            display: flex;
+            gap: 20px;
+            padding: 10px;
+        }
+
+        .characteristics-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+
+        .characteristics-group label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .characteristics-group input {
+            width: 60px;
+            padding: 2px;
+        }
+
+        .characteristics-group input[type="checkbox"] {
+            width: auto;
+        }
+
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+</head>
+
+<body>
+    <div class="toolbar">
+        <span id="tool-lines" onmouseover = 
+            "document.getElementById('lines-methods').style.display = 'block';"
+            onmouseout="document.getElementById('lines-methods').style.display = 'none';"
+            >Отрезки</span>
+
+        <span id="lines-methods" onmouseover = 
+            "document.getElementById('lines-methods').style.display = 'block';" 
+            onmouseout="document.getElementById('lines-methods').style.display = 'none';">
+            <li onclick="selectLinesMethods('cda')">ЦДА</li>
+            <li onclick="selectLinesMethods('bresenham')">Брезенхем</li>
+            <li onclick="selectLinesMethods('wu')">Ву</li>
+        </span>
+
+        <span id="tool-curves" onmouseover = 
+            "document.getElementById('curves-methods').style.display = 'block';"
+            onmouseout="document.getElementById('curves-methods').style.display = 'none';"
+            >Линии второго порядка</span>
+
+        <span id="curves-methods" onmouseover = 
+            "document.getElementById('curves-methods').style.display = 'block';" 
+            onmouseout="document.getElementById('curves-methods').style.display = 'none';">
+            <li onclick="selectCurvesMethods('ellips')">Эллипс</li>
+            <li onclick="selectCurvesMethods('parabola')">Парабола</li>
+            <li onclick="selectCurvesMethods('hyperbola')">Гипербола</li>
+        </span>
+
+        <span id="tool-interpolations" onmouseover = 
+            "document.getElementById('interpolations-methods').style.display = 'block';"
+            onmouseout="document.getElementById('interpolations-methods').style.display = 'none';"
+            >Кривые</span>
+
+        <span id="interpolations-methods" onmouseover = 
+            "document.getElementById('interpolations-methods').style.display = 'block';" 
+            onmouseout="document.getElementById('interpolations-methods').style.display = 'none';">
+            <li onclick="selectInterpolationsMethods('ermit')">Эрмит</li>
+            <li onclick="selectInterpolationsMethods('beze')">Безъе</li>
+            <li onclick="selectInterpolationsMethods('bspline')">B-сплайны</li>
+        </span>
+        <button id="tool-3dfigure" onclick="selectFigureMethods()">3D</button>
+    </div>
+
+    <div class="methods"> 
+        <span id="cda-method"></span>
+        <span id="bresenham-method"></span>
+        <span id="wu-method"></span>
+
+        <span id="ellips-method">
+            Эллипс: (x^2 / a^2) + (y^2 / b^2) = 1
+            <br>
+            <label for="a-ellips">a:</label>
+            <input type="text" id="a-ellips" placeholder="a">
+            <label for="b-ellips">b:</label>
+            <input type="text" id="b-ellips" placeholder="b">
+        </span>
+
+        <span id="parabola-method">
+            Парабола: y = (1/p) * x^2
+            <br>
+            <label for="p-parabola">p:</label>
+            <input type="text" id="p-parabola" placeholder="p">
+            <label for="maxX-parabola">Высота фигуры:</label>
+            <input type="text" id="maxX-parabola" placeholder="maxX">
+        </span>
+
+        <span id="hyperbola-method">
+            Гипербола: (x^2 / a^2) - (y^2 / b^2) = 1
+            <br>
+            <label for="a-hyperbola">a:</label>
+            <input type="text" id="a-hyperbola" placeholder="a">
+            <label for="b-hyperbola">b:</label>
+            <input type="text" id="b-hyperbola" placeholder="b">
+            <label for="maxX-hyperbola">Высота фигуры:</label>
+            <input type="text" id="maxX-hyperbola" placeholder="maxX">
+        </span>
+
+        <span id="ermit-method"></span>
+        <span id="beze-method"></span>
+        <span id="bspline-method">
+            <button id="create_bpline" onclick="drawBSpline()">Создать кривую</button>
+        </span>
+
+        <span id="3dfigure-method">
+            <button id="loadFileBtn">Загрузить фигуру из JSON</button>
+            <div id="3dfigure-characteristics">                
+            </div>
+        </span>
+    </div>
+
+    <div id="canvasContainer" style="width: 800px; height: 600px;">
+        <canvas id="canvas" width="800" height="600"></canvas>
+    </div>
+
+    <div class="debug-button" id="debugButton">Отладка</div>
+
+    <div class="debug-hidden" id="debugControls">
+      <button id="stepButton">Шаг</button>
+      <button id="stopButton">Остановить</button>
+    </div>
+
+    <script>
+        var socket = io();
+        var canvas = document.getElementById('canvas');
+        const canvasContainer = document.getElementById('canvasContainer');
+        var ctx = canvas.getContext('2d');
+        var prevPoint = null; // для lines
+        var debugging = false;
+
+        class Points 
+        {
+            constructor() 
+            {
+                this.points = [];
+                this.currentIndex = 0;
+            }
+
+            getCurrentItem() 
+            {
+                return this.points[this.currentIndex];
+            }
+        }
+
+        var gettingPoints = new Points(); // для lines и curves, отладки
+
+        class ToolManager {
+            constructor() {
+                this.tools = {};
+                this.activeTool = { key: null, value: null };
+            }
+        
+            addTool(toolName, toolElement) {
+                this.tools[toolName] = toolElement;
+            }
+
+            getActiveTool(){
+                return this.activeTool.key
+            }
+        
+            setActiveTool(toolName) {
+                if (this.activeTool.value) 
+                {
+                    this.activeTool.value.style.backgroundColor = '';
+                }
+                this.activeTool.key = toolName;
+                this.activeTool.value = this.tools[toolName];
+                this.activeTool.value.style.backgroundColor = '#ccc';
+            }
+        }
+        
+        var toolManager = new ToolManager();    
+        toolManager.addTool('lines', document.getElementById('tool-lines'));
+        toolManager.addTool('curves', document.getElementById('tool-curves'));
+        toolManager.addTool('interpolations', document.getElementById('tool-interpolations'));
+        toolManager.addTool('3dfigure',document.getElementById('tool-3dfigure'));
+
+        class MethodManager {
+            constructor() {
+                this.methods = {};
+                this.activeMethod = { key: null, value: null };
+            }
+        
+            addMethod(methodName, methodElement) {
+                this.methods[methodName] = methodElement;
+                methodElement.style.display = 'none';
+            }
+
+            getActiveMethod(){
+                return this.activeMethod.key
+            }
+        
+            setActiveMethod(methodName) {
+                if (this.activeMethod.value) 
+                {
+                    this.activeMethod.value.style.display = 'none';
+                }
+                this.activeMethod.key = methodName;
+                this.activeMethod.value = this.methods[methodName];
+                this.activeMethod.value.style.display = 'block';
+            }
+        }
+        
+        var methodManager = new MethodManager();    
+        methodManager.addMethod('cda', document.getElementById('cda-method'));
+        methodManager.addMethod('bresenham', document.getElementById('bresenham-method'));
+        methodManager.addMethod('wu', document.getElementById('wu-method'));
+
+        methodManager.addMethod('ellips', document.getElementById('ellips-method'));
+        methodManager.addMethod('hyperbola', document.getElementById('hyperbola-method'));
+        methodManager.addMethod('parabola', document.getElementById('parabola-method'));
+
+        methodManager.addMethod('ermit', document.getElementById('ermit-method'));
+        methodManager.addMethod('beze', document.getElementById('beze-method'));
+        methodManager.addMethod('bspline', document.getElementById('bspline-method'));
+
+        methodManager.addMethod('3dfigure',document.getElementById('3dfigure-method'));
+
+        class InterpolationTool {
+            constructor() {
+            }
+            draw(){}
+            clear(){}
+        }
+
+        class ErmitInterpolation extends InterpolationTool {
+            constructor(support_points) {
+                super();
+                this.support_points = support_points;                
+                this.drawing_points = [];
+                this.vectors = []
+                this.draw();
+            }
+
+            draw() {
+                this.point1 = this.support_points[0];
+                this.vector1 = this.support_points[1];
+                this.point2 = this.support_points[2];
+                this.vector2 = this.support_points[3];
+                this.G = [[parseInt(this.point1.style.left),parseInt(this.point1.style.top)],
+                [parseInt(this.point2.style.left),parseInt(this.point2.style.top)],
+                [parseInt(this.vector1.style.left),parseInt(this.vector1.style.top)],
+                [parseInt(this.vector2.style.left),parseInt(this.vector2.style.top)]
+                ]
+                socket.emit('generate_interpolation', {'method':'ermit','G': this.G}, (data) => {
+                    this.drawing_points = data.points;
+                    this.vectors = data.vectors;
+                    var points = this.drawing_points;
+                    points.forEach(function(point) 
+                    {
+                        var shade = point.shade;
+                        var color = 'rgba(0, 0, 0, ' + shade + ')';
+                        ctx.fillStyle = color;
+                        ctx.fillRect(point.x, point.y, 1, 1);     
+                    });
+                    points = this.vectors;
+                    points.forEach(function(point) 
+                    {
+                        var shade = point.shade;
+                        var color = 'rgba(0, 255, 255, ' + shade + ')';
+                        ctx.fillStyle = color;
+                        ctx.fillRect(point.x, point.y, 1, 1);     
+                    });
+                
+                });              
+            }
+            clear() {
+                var points = this.drawing_points
+                points.forEach(function(point) 
+                {
+                    var shade = point.shade;
+                    var color = 'rgba(255, 255, 255, 1)';
+                    ctx.fillStyle = color;
+                    ctx.fillRect(point.x, point.y, 1, 1);     
+                });
+                points = this.vectors
+                points.forEach(function(point) 
+                {
+                    var shade = point.shade;
+                    var color = 'rgba(255, 255, 255, 1)';
+                    ctx.fillStyle = color;
+                    ctx.fillRect(point.x, point.y, 1, 1);     
+                });
+            }
+        }
+
+        class BezeInterpolation extends InterpolationTool {
+            constructor(support_points) {
+                super();
+                this.support_points = support_points;                
+                this.drawing_points = [];
+                this.vectors = []
+                this.draw();
+            }
+
+            draw() {
+                this.point1 = this.support_points[0];
+                this.point2 = this.support_points[1];
+                this.point3 = this.support_points[2];
+                this.point4 = this.support_points[3];
+                this.G = [[parseInt(this.point1.style.left),parseInt(this.point1.style.top)],
+                [parseInt(this.point2.style.left),parseInt(this.point2.style.top)],
+                [parseInt(this.point3.style.left),parseInt(this.point3.style.top)],
+                [parseInt(this.point4.style.left),parseInt(this.point4.style.top)]
+                ]
+                socket.emit('generate_interpolation', {'method':'beze','G': this.G}, (data) => {
+                    this.drawing_points = data.points;
+                    this.vectors = data.vectors;
+                    this.drawing_points.forEach(function(point) 
+                    {
+                        var shade = point.shade;
+                        var color = 'rgba(0, 0, 0, ' + shade + ')';
+                        ctx.fillStyle = color;
+                        ctx.fillRect(point.x, point.y, 1, 1);     
+                    });
+                    this.vectors.forEach(function(point) 
+                    {
+                        var shade = point.shade;
+                        var color = 'rgba(255, 0, 255, ' + shade + ')';
+                        ctx.fillStyle = color;
+                        ctx.fillRect(point.x, point.y, 1, 1);     
+                    });
+                
+                });              
+            }
+            clear() {
+                this.drawing_points.forEach(function(point) 
+                {
+                    var shade = point.shade;
+                    var color = 'rgba(255, 255, 255, 1)';
+                    ctx.fillStyle = color;
+                    ctx.fillRect(point.x, point.y, 1, 1);     
+                });
+                this.vectors.forEach(function(point) 
+                {
+                    var shade = point.shade;
+                    var color = 'rgba(255, 255, 255, 1)';
+                    ctx.fillStyle = color;
+                    ctx.fillRect(point.x, point.y, 1, 1);     
+                });
+            }
+        }
+
+        class BSplineInterpolation extends InterpolationTool {
+            constructor(support_points) {
+                super();
+                this.support_points = support_points;                
+                this.drawing_points = [];
+                this.vectors = []
+                this.draw();
+            }
+
+            draw() {
+                this.G=[];
+
+                for(var i=0;i<this.support_points.length;i+=1){
+                    this.G.push([parseInt(this.support_points[i].style.left),parseInt(this.support_points[i].style.top)]);
+                }
+
+                socket.emit('generate_interpolation', {'method':'bspline','G': this.G}, (data) => {
+                    this.drawing_points = data.points;
+                    this.vectors = data.vectors;
+                    this.drawing_points.forEach(function(point) 
+                    {
+                        var shade = point.shade;
+                        var color = 'rgba(0, 0, 0, ' + shade + ')';
+                        ctx.fillStyle = color;
+                        ctx.fillRect(point.x, point.y, 1, 1);     
+                    });
+                    this.vectors.forEach(function(point) 
+                    {
+                        var shade = point.shade;
+                        var color = 'rgba(0, 255, 0, ' + shade + ')';
+                        ctx.fillStyle = color;
+                        ctx.fillRect(point.x, point.y, 1, 1);     
+                    });
+                
+                });              
+            }
+            clear() {
+                this.drawing_points.forEach(function(point) 
+                {
+                    var shade = point.shade;
+                    var color = 'rgba(255, 255, 255, 1)';
+                    ctx.fillStyle = color;
+                    ctx.fillRect(point.x, point.y, 1, 1);     
+                });
+                this.vectors.forEach(function(point) 
+                {
+                    var shade = point.shade;
+                    var color = 'rgba(255, 255, 255, 1)';
+                    ctx.fillStyle = color;
+                    ctx.fillRect(point.x, point.y, 1, 1);     
+                });
+            }
+        }
+
+        class Figure {
+            constructor(coord, edges) {
+                this.coord = coord;
+                this.edges = edges;
+                this.dx = 0;
+                this.dy = 0;
+                this.dz = 0;
+                this.rx = 0;
+                this.ry = 0;
+                this.rz = 0;
+                this.sx = 1;
+                this.sy = 1;
+                this.sz = 1;
+                this.mx = false;
+                this.my = false;
+                this.mz = false;
+                this.d = 100;
+
+                const characteristicsSpan = document.getElementById("3dfigure-characteristics");
+                characteristicsSpan.innerHTML='';
+                // Создаем контейнеры для групп характеристик
+                const translationDiv = document.createElement('div');
+                const rotationDiv = document.createElement('div');
+                const scaleDiv = document.createElement('div');
+                const reflectionDiv = document.createElement('div');
+                const DDiv = document.createElement('div');
+
+                // Добавляем класс для группировки
+                [translationDiv, rotationDiv, scaleDiv, reflectionDiv,DDiv].forEach(div => {
+                    div.className = 'characteristics-group';
+                });
+
+                // Перемещение
+                translationDiv.innerHTML = `
+                <label>Перемещение:</label>
+                <div>
+                    X: <input type="number" value="${this.dx}" class="translation-input" data-axis="x"/>
+                    Y: <input type="number" value="${this.dy}" class="translation-input" data-axis="y"/>
+                    Z: <input type="number" value="${this.dz}" class="translation-input" data-axis="z"/>
+                </div>
+                `;
+
+                // Вращение
+                rotationDiv.innerHTML = `
+                <label>Вращение (градусы):</label>
+                <div>
+                    X: <input type="number" value="${this.rx}" class="rotation-input" data-axis="x"/>
+                    Y: <input type="number" value="${this.ry}" class="rotation-input" data-axis="y"/>
+                    Z: <input type="number" value="${this.rz}" class="rotation-input" data-axis="z"/>
+                </div>
+                `;
+
+                // Масштабирование
+                scaleDiv.innerHTML = `
+                <label>Масштабирование:</label>
+                <div>
+                    X: <input type="number" value="${this.sx}" step="0.1" class="scale-input" data-axis="x"/>
+                    Y: <input type="number" value="${this.sy}" step="0.1" class="scale-input" data-axis="y"/>
+                    Z: <input type="number" value="${this.sz}" step="0.1" class="scale-input" data-axis="z"/>
+                </div>
+                `;
+
+                // Отражение
+                reflectionDiv.innerHTML = `
+                <label>Отражение:</label>
+                <div>
+                    X: <input type="checkbox" ${this.mx ? 'checked' : ''} class="reflection-input" data-axis="x"/>
+                    Y: <input type="checkbox" ${this.my ? 'checked' : ''} class="reflection-input" data-axis="y"/>
+                    Z: <input type="checkbox" ${this.mz ? 'checked' : ''} class="reflection-input" data-axis="z"/>
+                </div>
+                `;
+
+                DDiv.innerHTML = `
+                <label>Фокус:</label>
+                <div>
+                    D: <input type="number" value="${this.d}" step="1" class="d-input"/>
+                </div>
+                `;
+
+                characteristicsSpan.appendChild(translationDiv);
+                characteristicsSpan.appendChild(rotationDiv);
+                characteristicsSpan.appendChild(scaleDiv);
+                characteristicsSpan.appendChild(reflectionDiv);
+                characteristicsSpan.appendChild(DDiv);
+
+                this.setupEventListeners();
+                this.draw();
+            }
+        
+            setupEventListeners() {
+                // Обработчик для фокуса
+                document.querySelectorAll('.d-input').forEach(input => {
+                    input.addEventListener('input', (e) => {
+                        this.d = parseFloat(e.target.value) || 100;                        
+                        this.draw();
+                    });
+                });
+
+                // Обработчики для перемещения
+                document.querySelectorAll('.translation-input').forEach(input => {
+                    input.addEventListener('input', (e) => {
+                        const axis = e.target.dataset.axis;
+                        switch(axis) {
+                            case 'x': this.dx = parseFloat(e.target.value) || 0; break;
+                            case 'y': this.dy = parseFloat(e.target.value) || 0; break;
+                            case 'z': this.dz = parseFloat(e.target.value) || 0; break;
+                        }
+                        this.draw();
+                    });
+                });
+            
+                // Обработчики для вращения
+                document.querySelectorAll('.rotation-input').forEach(input => {
+                    input.addEventListener('change', (e) => {
+                        const axis = e.target.dataset.axis;
+                        switch(axis) {
+                            case 'x': this.rx = parseFloat(e.target.value) || 0; break;
+                            case 'y': this.ry = parseFloat(e.target.value) || 0; break;
+                            case 'z': this.rz = parseFloat(e.target.value) || 0; break;
+                        }
+                        this.draw();
+                    });
+                });
+            
+                // Обработчики для масштабирования
+                document.querySelectorAll('.scale-input').forEach(input => {
+                    input.addEventListener('change', (e) => {
+                        const axis = e.target.dataset.axis;
+                        switch(axis) {
+                            case 'x': this.sx = parseFloat(e.target.value) || 1; break;
+                            case 'y': this.sy = parseFloat(e.target.value) || 1; break;
+                            case 'z': this.sz = parseFloat(e.target.value) || 1; break;
+                        }
+                        this.draw();
+                    });
+                });
+            
+                // Обработчики для отражения
+                document.querySelectorAll('.reflection-input').forEach(input => {
+                    input.addEventListener('change', (e) => {
+                        const axis = e.target.dataset.axis;
+                        switch(axis) {
+                            case 'x': this.mx = e.target.checked; break;
+                            case 'y': this.my = e.target.checked; break;
+                            case 'z': this.mz = e.target.checked; break;
+                        }
+                        this.draw();
+                    });
+                });
+            }
+        
+            draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                socket.emit('generate_3dfigure', {
+                    'coords':this.coord,
+                    'edges': this.edges,
+                    'r':[this.rx,this.ry,this.rz],
+                    't':[this.dx,this.dy,this.dz],
+                    's':[this.sx,this.sy,this.sz],
+                    'm':[this.mx ? -1 : 1,this.my ? -1 : 1,this.mz ? -1 : 1],
+                    'd':this.d
+                }, (data) => {
+                    if (data.error) {
+                        console.error("Ошибка от сервера:", data.error);
+                    } else {
+                    this.drawing_points = data.points;
+                    this.drawing_points.forEach(function(point) 
+                    {
+                        var shade = point.shade;
+                        var color = 'rgba(0, 0, 0, ' + shade + ')';
+                        ctx.fillStyle = color;
+                        ctx.fillRect(point.x, point.y, 1, 1);     
+                    });
+                    }
+                })
+            }
+        }
+
+        document.getElementById("loadFileBtn").addEventListener("click", loadFromJSON);
+        // var figure;
+        function loadFromJSON() { 
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".json";
+            input.addEventListener("change", function () {
+                const file = input.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        fig = JSON.parse(e.target.result);
+                        figure = new Figure(fig['nodes'],fig['edges'])
+                    };
+                    reader.readAsText(file);
+                }
+            });
+            input.click();
+        }
+
+        canvas.addEventListener('click', function(event) {
+            if (toolManager.getActiveTool() == 'lines') {
+                if (prevPoint) {
+                    var x0 = prevPoint.x;
+                    var y0 = prevPoint.y;
+                    var x1 = event.offsetX;
+                    var y1 = event.offsetY;
+                    socket.emit('generate_line', {'method': methodManager.getActiveMethod(),
+                        'x0': x0, 'y0': y0, 'x1': x1, 'y1': y1});
+                    prevPoint = null;
+                } else {
+                    prevPoint = {x: event.offsetX, y: event.offsetY};
+                }
+            }
+            else if (toolManager.getActiveTool() == 'curves') {
+                if (methodManager.getActiveMethod()=='ellips')
+                {
+                    var aInput = document.getElementById('a-ellips');
+                    var bInput = document.getElementById('b-ellips');                            
+                    var a = parseFloat(aInput.value);
+                    var b = parseFloat(bInput.value);
+                    if (isNaN(a) || isNaN(b)) {
+                        alert('Пожалуйста, введите числовые значения для a и b.');
+                        return;
+                    }
+                    var x = event.offsetX;
+                    var y = event.offsetY;                
+                    socket.emit('generate_curve', {'method': methodManager.getActiveMethod(), 'a': a, 'b': b, 'x': x, 'y': y});
+                }
+                else if (methodManager.getActiveMethod() == 'parabola')
+                {
+                    var pInput = document.getElementById('p-parabola');  
+                    var maxXInput = document.getElementById('maxX-parabola');  
+                    var p = parseFloat(pInput.value);
+                    var maxX = parseInt(maxXInput.value);
+                    if (isNaN(p) || isNaN(maxX)) {
+                        alert('Пожалуйста, введите числовые значения для p и maxX.');
+                        return;
+                    }
+                    var x = event.offsetX;
+                    var y = event.offsetY;
+                    socket.emit('generate_curve', {'method': methodManager.getActiveMethod(), 'p': p, 'maxX': maxX, 'x': x, 'y': y});
+                }
+                else if (methodManager.getActiveMethod() == 'hyperbola')
+                {
+                    var aInput = document.getElementById('a-hyperbola');
+                    var bInput = document.getElementById('b-hyperbola'); 
+                    var maxXInput = document.getElementById('maxX-hyperbola');  
+                    var a = parseFloat(aInput.value);
+                    var b = parseFloat(bInput.value);
+                    var maxX = parseInt(maxXInput.value);
+                    if (isNaN(a) || isNaN(b) || isNaN(maxX)) {
+                        alert('Пожалуйста, введите числовые значения для a, b и maxX.');
+                        return;
+                    }
+                    var x = event.offsetX;
+                    var y = event.offsetY;
+                    socket.emit('generate_curve', {'method': methodManager.getActiveMethod(), 'a': a, 'b': b, 'maxX': maxX, 'x': x, 'y': y});
+                }
+            }
+        });
+
+        var points_for_interpolation = []; // используется для отрисовки интерполяций
+        var all_interpolation_points = []; // нужны для состыковки сегментов
+        var interpolation_figures = []; // нужны для перерисовки конкретной фигуры и состыковки
+        
+        canvasContainer.addEventListener('dblclick',function(e) {
+            if (toolManager.getActiveTool()=='interpolations') {
+                const point = document.createElement('div');
+                point.classList.add('point');
+                const pointSize = 8;
+                point.style.left = e.offsetX - pointSize / 2 + 'px';
+                point.style.top = e.offsetY - pointSize / 2 + 'px';
+
+                canvasContainer.appendChild(point);
+                points_for_interpolation.push(point);
+                all_interpolation_points.push(point);
+                if (methodManager.getActiveMethod()=='ermit') {
+                    if (points_for_interpolation.length==4) {
+                        const newInterpolationFigure = new ErmitInterpolation(points_for_interpolation);
+                        interpolation_figures.push(newInterpolationFigure);
+                        points_for_interpolation=[];
+                    }
+                }
+                else if (methodManager.getActiveMethod()=='beze') {
+                    if (points_for_interpolation.length==4) {
+                        const newInterpolationFigure = new BezeInterpolation(points_for_interpolation);
+                        interpolation_figures.push(newInterpolationFigure);
+                        points_for_interpolation=[];
+                    }
+                }
+                point.addEventListener('mousedown', function(e) {
+                    let offsetX = e.clientX - point.offsetLeft;
+                    let offsetY = e.clientY - point.offsetTop;
+
+                    function movePoint(e) {
+                        point.style.left = e.clientX - offsetX + 'px';
+                        point.style.top = e.clientY - offsetY + 'px';
+                    }
+                
+                    function stopMove() {
+                        document.removeEventListener('mousemove', movePoint);
+                        document.removeEventListener('mouseup', stopMove);
+                        var pleft =parseInt(point.style.left);
+                        var ptop = parseInt(point.style.top);
+
+                        for (var j=0;j<all_interpolation_points.length;j+=1)
+                        {
+                            if (all_interpolation_points[j]==point) continue;
+                            var tleft =parseInt(all_interpolation_points[j].style.left);
+                            var ttop = parseInt(all_interpolation_points[j].style.top);
+                            var delta = 4;                         
+                            if((tleft - delta<=pleft) && (pleft<=tleft + delta) && (ttop - delta<=ptop) && (ptop<=ttop + delta))
+                            {
+                                for (var i =0;i<interpolation_figures.length;i+=1) {
+                                    if (interpolation_figures[i].support_points.includes(all_interpolation_points[j])) {
+                                        const index = interpolation_figures[i].support_points.indexOf(all_interpolation_points[j]);
+                                        interpolation_figures[i].support_points[index]=point;
+                                    }
+                                }
+                                const index = all_interpolation_points.indexOf(all_interpolation_points[j]);
+                                all_interpolation_points[j].remove();                                                                
+                                all_interpolation_points.splice(index, 1);                                
+                                break;
+                            }                     
+                        };
+
+                        interpolation_figures.forEach(figure => {
+                            if (figure.support_points.includes(point)) {
+                                figure.clear();
+                                figure.draw();
+                            }
+                            });
+                        }               
+                
+                    document.addEventListener('mousemove', movePoint);
+                    document.addEventListener('mouseup', stopMove);
+                });
+            }
+        })
+
+        function drawBSpline() {
+            if (toolManager.getActiveTool()=='interpolations') {
+                if (methodManager.getActiveMethod()=='bspline') {
+                    if (points_for_interpolation.length<4) {
+                        alert('Для построения нужно не менее 4 точек.');
+                        return;
+                        }
+                    else {
+                        const newInterpolationFigure = new BSplineInterpolation(points_for_interpolation);
+                        interpolation_figures.push(newInterpolationFigure);
+                        points_for_interpolation=[];
+                    }
+                }
+            }
+        }
+        
+        socket.on('draw', function(data) {
+            gettingPoints.points = data.points;
+            gettingPoints.currentIndex = 0
+            if (debugging == false) 
+            {
+                var points = gettingPoints.points
+                points.forEach(function(point) 
+                {
+                    var shade = point.shade;
+                    var color = 'rgba(0, 0, 0, ' + shade + ')';
+                    ctx.fillStyle = color;
+                    ctx.fillRect(point.x, point.y, 1, 1);     
+                });
+                gettingPoints.points = [];
+                gettingPoints.currentIndex = 0
+            }
+            });
+
+        function selectLinesMethods(tool) {
+            var tools = document.querySelectorAll('.toolbar li');
+            tools.forEach(function(tool) {
+                tool.classList.remove('active');
+            });
+
+            var selectMethod = document.querySelector('#lines-methods li:nth-child(' + (['cda', 'bresenham', 'wu'].indexOf(tool)+1) + ')');
+            selectMethod.classList.add('active');
+            document.getElementById('lines-methods').style.display = 'none';
+            toolManager.setActiveTool('lines');
+            methodManager.setActiveMethod(tool);
+        }
+
+        function selectCurvesMethods(tool) {
+            var tools = document.querySelectorAll('.toolbar li');
+            tools.forEach(function(tool) {
+                tool.classList.remove('active');
+            });
+
+            var selectMethod = document.querySelector('#curves-methods li:nth-child(' + (['ellips', 'parabola', 'hyperbola'].indexOf(tool)+1) + ')');
+            selectMethod.classList.add('active');
+            document.getElementById('curves-methods').style.display = 'none';
+            toolManager.setActiveTool('curves');
+            methodManager.setActiveMethod(tool);
+        }
+
+        function selectInterpolationsMethods(tool) {
+            var tools = document.querySelectorAll('.toolbar li');
+            tools.forEach(function(tool) {
+                tool.classList.remove('active');
+            });
+
+            var selectMethod = document.querySelector('#interpolations-methods li:nth-child(' + (['ermit', 'beze', 'bspline'].indexOf(tool)+1) + ')');
+            selectMethod.classList.add('active');
+            document.getElementById('interpolations-methods').style.display = 'none';
+            toolManager.setActiveTool('interpolations');
+            methodManager.setActiveMethod(tool);
+        }
+
+        function selectFigureMethods() {
+            var tools = document.querySelectorAll('.toolbar li');
+            tools.forEach(function(tool) {
+                tool.classList.remove('active');
+            });
+
+            toolManager.setActiveTool('3dfigure');
+            methodManager.setActiveMethod('3dfigure');
+        }
+
+        const debugButton = document.getElementById('debugButton');
+        const debugControls = document.getElementById('debugControls');
+        const stepButton = document.getElementById('stepButton');
+        const stopButton = document.getElementById('stopButton');
+
+        debugButton.addEventListener('click', () => {
+            debugButton.style.display = 'none';
+            debugControls.style.display = 'block';
+            debugging = true;
+        });
+
+        function drawPoint() {
+            point = gettingPoints.getCurrentItem();
+            if (point != undefined)
+            {
+                var shade = point.shade;
+                var color = 'rgba(0, 0, 0, ' + shade + ')';
+                ctx.fillStyle = color;
+                ctx.fillRect(point.x, point.y, 1, 1);
+                gettingPoints.currentIndex += 1;
+                if (gettingPoints.currentIndex == gettingPoints.points.length)
+                {
+                    gettingPoints.points = []
+                    gettingPoints.currentIndex = 0
+                }
+            }
+        }
+
+        stepButton.addEventListener('click', () => {
+            drawPoint();
+        });
+
+        stopButton.addEventListener('click', () => {
+            debugControls.style.display = 'none';
+            debugButton.style.display = 'block';
+            debugging = false;
+        });
+    </script>
+</body>
+</html>
