@@ -2,183 +2,7 @@
 <html>
 <head>
     <title>Canvas Drawing</title>
-    <style>
-        .toolbar {
-            position
-            : relative;
-            z-index: 10;
-        }
-        #tool-lines {
-            cursor: pointer;
-            border: 1px solid #ccc;
-        }
-        #tool-lines:hover {
-            background: #e0e0e0;
-        }
-
-        #tool-curves {
-            cursor: pointer;
-            border: 1px solid #ccc;
-        }
-        #tool-curves:hover {
-            background: #e0e0e0;
-        }
-
-        #tool-interpolations {
-            cursor: pointer;
-            border: 1px solid #ccc;
-        }
-        #tool-interpolations:hover {
-            background: #e0e0e0;
-        }
-        
-        #lines-methods {
-            display: none;
-            position: absolute;
-            top: 18px;
-            left: 0;
-            background: #f9f9f9;
-            padding: 5px;
-            border: 1px solid #ccc;
-        }
-        #lines-methods li {
-            list-style: none;
-            cursor: pointer;
-        }
-        #lines-methods li:hover {
-            background: #e0e0e0;
-        }
-        #lines-methods li.active {
-            background: #ccc;
-        }
-
-        #curves-methods {
-            display: none;
-            position: absolute;
-            top: 18px;
-            left: 65px;
-            background: #f9f9f9;
-            padding: 5px;
-            border: 1px solid #ccc;
-        }
-        #curves-methods li {
-            list-style: none;
-            cursor: pointer;
-        }
-        #curves-methods li:hover {
-            background: #e0e0e0;
-        }
-        #curves-methods li.active {
-            background: #ccc;
-        }
-
-        #interpolations-methods {
-            display: none;
-            position: absolute;
-            top: 18px;
-            left: 200px;
-            background: #f9f9f9;
-            padding: 5px;
-            border: 1px solid #ccc;
-        }
-        #interpolations-methods li {
-            list-style: none;
-            cursor: pointer;
-        }
-        #interpolations-methods li:hover {
-            background: #e0e0e0;
-        }
-        #interpolations-methods li.active {
-            background: #ccc;
-        }
-
-        #canvas {
-            border: 2px solid black;
-        }
-
-        #canvasContainer {
-            position: relative;
-            margin-top: 20px;
-            border: 1px solid black;
-        }
-
-        #create_bpline {
-            margin-top: 5px;
-        }
-
-        .debug-button {
-          position: fixed;
-          top: 10px;
-          right: 10px;
-          background-color: #45ee03;
-          color: #ffffff;
-          padding: 10px 20px;
-          cursor: pointer;
-        }
-
-        #debugControls {
-          position: fixed;
-          top: 10px;
-          right: 10px;
-          background-color: #424246;
-          display: none;
-        }
-
-        #stepButton, #stopButton {
-          background-color: #007bff;
-          color: #fff;
-          padding: 5px 10px;
-          cursor: pointer;
-        }
-
-        .debug-hidden {
-          display: none;
-        }
-
-        .methods {
-            position
-            : relative;
-            z-index: 0;
-        }
-
-        .point {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background-color: red;
-            border-radius: 50%;
-            cursor: move;
-            z-index: 10;
-        }
-
-        #3dfigure-characteristics {
-            display: flex;
-            gap: 20px;
-            padding: 10px;
-        }
-
-        .characteristics-group {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 5px;
-        }
-
-        .characteristics-group label {
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .characteristics-group input {
-            width: 60px;
-            padding: 2px;
-        }
-
-        .characteristics-group input[type="checkbox"] {
-            width: auto;
-        }
-
-    </style>
+    <link rel="stylesheet" href="/static/main.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
 </head>
 
@@ -223,6 +47,37 @@
             <li onclick="selectInterpolationsMethods('bspline')">B-сплайны</li>
         </span>
         <button id="tool-3dfigure" onclick="selectFigureMethods()">3D</button>
+
+        <span id="tool-polygons" onmouseover = 
+            "document.getElementById('polygons-methods').style.display = 'block';"
+            onmouseout="document.getElementById('polygons-methods').style.display = 'none';"
+            >Построение полигонов</span>
+
+        <span id="polygons-methods" onmouseover = 
+            "document.getElementById('polygons-methods').style.display = 'block';" 
+            onmouseout="document.getElementById('polygons-methods').style.display = 'none';">
+            <li onclick="selectPolygonsMethods('general')">Построение по точкам</li>
+            <li onclick="selectPolygonsMethods('graham')">Метод Грэхема</li>
+            <li onclick="selectPolygonsMethods('jarvis')">Метод Джарвиса</li>
+            <li onclick="selectPolygonsMethods('point')">Поставить точку</li>
+        </span>
+
+        <span id="tool-filling-polygons" onmouseover = 
+            "document.getElementById('polygons-filling-methods').style.display = 'block';"
+            onmouseout="document.getElementById('polygons-filling-methods').style.display = 'none';"
+            >Заполнение полигонов</span>
+
+        <span id="polygons-filling-methods" onmouseover = 
+            "document.getElementById('polygons-filling-methods').style.display = 'block';" 
+            onmouseout="document.getElementById('polygons-filling-methods').style.display = 'none';">
+            <li onclick="selectPolygonsFillingMethods('scanline')">Растровая развертка</li>
+            <li onclick="selectPolygonsFillingMethods('scanline_aet')">Растровая развертка со списком активных ребер</li>
+            <li onclick="selectPolygonsFillingMethods('flood_fill')">Простое заполнение с затравкой</li>
+            <li onclick="selectPolygonsFillingMethods('flood_fill_line')">Построчное заполнение с затравкой</li>
+        </span>
+
+        <!---->
+
     </div>
 
     <div class="methods"> 
@@ -270,6 +125,34 @@
             <div id="3dfigure-characteristics">                
             </div>
         </span>
+
+        <span id="general-method">
+            <button id="create_general_polygon" onclick="drawPolygon()">Построить полигон по точкам</button>
+        </span>
+        <span id="graham-method">
+            <button id="create_graham_polygon" onclick="drawPolygon()">Построить полигон по методу Грэхема</button>
+        </span>
+        <span id="jarvis-method">
+            <button id="create_jarvis_polygon" onclick="drawPolygon()">Построить полигон по методу Джарвиса</button>
+        </span>
+        <span id="point-method"></span>
+
+
+        <span id="scanline-method">
+            <button onclick="drawFillingPolygon()">Растровая развертка</button>
+        </span>
+        <span id="scanline_aet-method">
+            <button onclick="drawFillingPolygon()">Растровая развертка со списком активных ребер</button>
+        </span>
+        <span id="flood_fill_line-method">
+            <button onclick="drawFillingPolygon()">Построчное заполнение с затравкой</button>
+        </span>
+        <span id="flood_fill-method">
+            <button onclick="drawFillingPolygon()">Простое заполнение с затравкой</button>
+        </span>
+
+        <!---->
+
     </div>
 
     <div id="canvasContainer" style="width: 800px; height: 600px;">
@@ -306,6 +189,8 @@
         }
 
         var gettingPoints = new Points(); // для lines и curves, отладки
+        var points_for_polygon = []; // используется для отрисовки полигонов
+        var polygon_figures = []; // хранит все полигоны
 
         class ToolManager {
             constructor() {
@@ -337,6 +222,10 @@
         toolManager.addTool('curves', document.getElementById('tool-curves'));
         toolManager.addTool('interpolations', document.getElementById('tool-interpolations'));
         toolManager.addTool('3dfigure',document.getElementById('tool-3dfigure'));
+        toolManager.addTool('polygons',document.getElementById('tool-polygons'));
+        toolManager.addTool('filling_polygons',document.getElementById('tool-filling-polygons'));
+        // 
+
 
         class MethodManager {
             constructor() {
@@ -378,6 +267,17 @@
         methodManager.addMethod('bspline', document.getElementById('bspline-method'));
 
         methodManager.addMethod('3dfigure',document.getElementById('3dfigure-method'));
+
+        methodManager.addMethod('general', document.getElementById('general-method'));
+        methodManager.addMethod('graham', document.getElementById('graham-method'));
+        methodManager.addMethod('jarvis', document.getElementById('jarvis-method'));
+        methodManager.addMethod('point', document.getElementById('point-method'));
+
+        methodManager.addMethod('scanline', document.getElementById('scanline-method'));
+        methodManager.addMethod('scanline_aet', document.getElementById('scanline_aet-method'));
+        methodManager.addMethod('flood_fill_line', document.getElementById('flood_fill_line-method'));
+        methodManager.addMethod('flood_fill', document.getElementById('flood_fill-method'));
+        //
 
         class InterpolationTool {
             constructor() {
@@ -574,7 +474,7 @@
                 this.mx = false;
                 this.my = false;
                 this.mz = false;
-                this.d = 100;
+                this.d = 200;
 
                 const characteristicsSpan = document.getElementById("3dfigure-characteristics");
                 characteristicsSpan.innerHTML='';
@@ -736,6 +636,35 @@
             }
         }
 
+        class Polygon {
+            constructor(points, method) {
+                this.points = points;
+                this.method = method;
+                this.draw();
+            }
+            draw() {
+                socket.emit('generate_polygon', {'method':this.method,'G': this.points}, (data) => {
+                    if (data.error) {
+                        console.error("Ошибка от сервера:", data.error);
+                    } else {
+                    this.drawing_points = data.points;
+                    this.isConvex = data.convex;
+                    this.points = data.ref_points;
+                    
+                    this.drawing_points.forEach((point) =>
+                    {
+                        var shade = point.shade;
+                        let color = this.isConvex
+                            ? 'rgba(0, 255, 0, ' + shade + ')'
+                            : 'rgba(255, 0, 0, ' + shade + ')';
+                        ctx.fillStyle = color;
+                        ctx.fillRect(point.x, point.y, 1, 1);     
+                    });
+                    }
+                })
+            }
+        }
+
         document.getElementById("loadFileBtn").addEventListener("click", loadFromJSON);
         // var figure;
         function loadFromJSON() { 
@@ -765,6 +694,24 @@
                     var y1 = event.offsetY;
                     socket.emit('generate_line', {'method': methodManager.getActiveMethod(),
                         'x0': x0, 'y0': y0, 'x1': x1, 'y1': y1});
+
+                    polygons_coords = [];
+                    for (let polygon of polygon_figures) {
+                        polygons_coords.push(polygon.points);
+                    }
+
+                    socket.emit('check_polygon_intersection', {'polygons':polygons_coords,'segment': [[x0,y0],[x1,y1]]}, (data) => {
+                        if (data.error) {
+                            console.error("Ошибка от сервера:", data.error);
+                        } else {
+                            intersections = data.intersections;
+                            for (point of intersections) {
+                                ctx.fillStyle = 'blue';
+                                ctx.fillRect(point[0] - 1, point[1] - 1, 3, 3);
+                            }                            
+                        }
+                    });
+
                     prevPoint = null;
                 } else {
                     prevPoint = {x: event.offsetX, y: event.offsetY};
@@ -815,6 +762,42 @@
                     var y = event.offsetY;
                     socket.emit('generate_curve', {'method': methodManager.getActiveMethod(), 'a': a, 'b': b, 'maxX': maxX, 'x': x, 'y': y});
                 }
+            }
+            else if (toolManager.getActiveTool()=='polygons') {
+                if (methodManager.getActiveMethod() !='point') {
+                    x = event.offsetX;
+                    y = event.offsetY;
+                    points_for_polygon.push([x, y]);
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(x - 1, y - 1, 3, 3);
+                }
+                else if (methodManager.getActiveMethod() =='point') {
+                    x = event.offsetX;
+                    y = event.offsetY;
+                    point = [x,y];
+                    polygons_coords = [];
+                    for (let polygon of polygon_figures) {
+                        polygons_coords.push(polygon.points);
+                    }
+                    socket.emit('check_polygon_inside', {'polygons':polygons_coords,'point': point}, (data) => {
+                        if (data.error) {
+                            console.error("Ошибка от сервера:", data.error);
+                        } else {
+                            is_inside = data.inside;
+                            if (is_inside) {                                                       
+                                ctx.fillStyle = 'green';}
+                            else {ctx.fillStyle = 'red';}
+                            ctx.fillRect(x - 1, y - 1, 3, 3);
+                        }
+                    });
+                }
+            }
+            else if (toolManager.getActiveTool()=='filling_polygons') {
+                x = event.offsetX;
+                y = event.offsetY;
+                points_for_polygon.push([x, y]);
+                ctx.fillStyle = 'black';
+                ctx.fillRect(x, y, 2, 2);
             }
         });
 
@@ -896,6 +879,54 @@
                 });
             }
         })
+
+        function drawPolygon() {
+            if (toolManager.getActiveTool()=='polygons') {
+                if (points_for_polygon.length<3) {
+                    alert('Для построения нужно не менее 3 точек.');
+                    return;
+                    }
+                else {
+                    const newPolygon = new Polygon(points_for_polygon, methodManager.getActiveMethod());
+                    polygon_figures.push(newPolygon);
+                    points_for_polygon=[];
+                }
+            }
+        }
+
+        function drawFillingPolygon() {
+            if (toolManager.getActiveTool()=='filling_polygons') {
+                if (points_for_polygon.length<3) {
+                    alert('Для построения нужно не менее 3 точек.');
+                    return;
+                    }
+                else {
+                    socket.emit('generate_filling_polygon', {'method':methodManager.getActiveMethod(),'G': points_for_polygon}, (data) => {
+                    if (data.error) {
+                        console.error("Ошибка от сервера:", data.error);
+                    } else {
+                        gettingPoints.points = data.points;
+                        gettingPoints.currentIndex = 0
+                        if (debugging == false) 
+                        {
+                            var points = gettingPoints.points
+                            points.forEach(function(point) 
+                            {
+                                var shade = point.shade;
+                                var color = 'rgba(0, 0, 0, ' + shade + ')';
+                                ctx.fillStyle = color;
+                                ctx.fillRect(point.x, point.y, 1, 1);     
+                            });
+                            gettingPoints.points = [];
+                            gettingPoints.currentIndex = 0
+                        }
+                    }
+                    })
+
+                    points_for_polygon=[];
+                }
+            }
+        }
 
         function drawBSpline() {
             if (toolManager.getActiveTool()=='interpolations') {
@@ -980,6 +1011,34 @@
             methodManager.setActiveMethod('3dfigure');
         }
 
+        function selectPolygonsMethods(tool) {
+            var tools = document.querySelectorAll('.toolbar li');
+            tools.forEach(function(tool) {
+                tool.classList.remove('active');
+            });
+
+            var selectMethod = document.querySelector('#polygons-methods li:nth-child(' + (['general', 'graham', 'jarvis','point'].indexOf(tool)+1) + ')');
+            selectMethod.classList.add('active');
+            document.getElementById('polygons-methods').style.display = 'none';
+            toolManager.setActiveTool('polygons');
+            methodManager.setActiveMethod(tool);
+        }
+
+        function selectPolygonsFillingMethods(tool) {
+            var tools = document.querySelectorAll('.toolbar li');
+            tools.forEach(function(tool) {
+                tool.classList.remove('active');
+            });
+
+            var selectMethod = document.querySelector('#polygons-filling-methods li:nth-child(' + (['scanline', 'scanline_aet', 'flood_fill','flood_fill_line'].indexOf(tool)+1) + ')');
+            selectMethod.classList.add('active');
+            document.getElementById('polygons-filling-methods').style.display = 'none';
+            toolManager.setActiveTool('filling_polygons');
+            methodManager.setActiveMethod(tool);
+        }
+
+        //
+
         const debugButton = document.getElementById('debugButton');
         const debugControls = document.getElementById('debugControls');
         const stepButton = document.getElementById('stepButton');
@@ -1005,6 +1064,7 @@
                     gettingPoints.points = []
                     gettingPoints.currentIndex = 0
                 }
+                
             }
         }
 
@@ -1013,6 +1073,17 @@
         });
 
         stopButton.addEventListener('click', () => {
+            // var points = gettingPoints.points
+            var points = gettingPoints.points.slice(gettingPoints.currentIndex);
+            points.forEach(function(point) 
+            {
+                var shade = point.shade;
+                var color = 'rgba(0, 0, 0, ' + shade + ')';
+                ctx.fillStyle = color;
+                ctx.fillRect(point.x, point.y, 1, 1);     
+            });
+            gettingPoints.points = [];
+            gettingPoints.currentIndex = 0
             debugControls.style.display = 'none';
             debugButton.style.display = 'block';
             debugging = false;

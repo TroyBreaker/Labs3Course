@@ -1,0 +1,235 @@
+.toolbar {
+    position
+    : relative;
+    z-index: 10;
+}
+#tool-lines {
+    cursor: pointer;
+    border: 1px solid #ccc;
+}
+#tool-lines:hover {
+    background: #e0e0e0;
+}
+
+#tool-curves {
+    cursor: pointer;
+    border: 1px solid #ccc;
+}
+#tool-curves:hover {
+    background: #e0e0e0;
+}
+
+#tool-interpolations {
+    cursor: pointer;
+    border: 1px solid #ccc;
+}
+#tool-interpolations:hover {
+    background: #e0e0e0;
+}
+
+#tool-polygons {
+    cursor: pointer;
+    border: 1px solid #ccc;
+}
+#tool-polygons:hover {
+    background: #e0e0e0;
+}
+
+#tool-filling-polygons {
+    cursor: pointer;
+    border: 1px solid #ccc;
+}
+#tool-filling-polygons:hover {
+    background: #e0e0e0;
+}
+
+#lines-methods {
+    display: none;
+    position: absolute;
+    top: 18px;
+    left: 0;
+    background: #f9f9f9;
+    padding: 5px;
+    border: 1px solid #ccc;
+}
+#lines-methods li {
+    list-style: none;
+    cursor: pointer;
+}
+#lines-methods li:hover {
+    background: #e0e0e0;
+}
+#lines-methods li.active {
+    background: #ccc;
+}
+
+
+#curves-methods {
+    display: none;
+    position: absolute;
+    top: 18px;
+    left: 65px;
+    background: #f9f9f9;
+    padding: 5px;
+    border: 1px solid #ccc;
+}
+#curves-methods li {
+    list-style: none;
+    cursor: pointer;
+}
+#curves-methods li:hover {
+    background: #e0e0e0;
+}
+#curves-methods li.active {
+    background: #ccc;
+}
+
+
+#interpolations-methods {
+    display: none;
+    position: absolute;
+    top: 18px;
+    left: 200px;
+    background: #f9f9f9;
+    padding: 5px;
+    border: 1px solid #ccc;
+}
+#interpolations-methods li {
+    list-style: none;
+    cursor: pointer;
+}
+#interpolations-methods li:hover {
+    background: #e0e0e0;
+}
+#interpolations-methods li.active {
+    background: #ccc;
+}
+
+
+#polygons-methods {
+    display: none;
+    position: absolute;
+    top: 18px;
+    left: 325px;
+    background: #f9f9f9;
+    padding: 5px;
+    border: 1px solid #ccc;
+}
+#polygons-methods li {
+    list-style: none;
+    cursor: pointer;
+}
+#polygons-methods li:hover {
+    background: #e0e0e0;
+}
+#polygons-methods li.active {
+    background: #ccc;
+}
+
+
+#polygons-filling-methods {
+    display: none;
+    position: absolute;
+    top: 18px;
+    left: 375px;
+    background: #f9f9f9;
+    padding: 5px;
+    border: 1px solid #ccc;
+}
+#polygons-filling-methods li {
+    list-style: none;
+    cursor: pointer;
+}
+#polygons-filling-methods li:hover {
+    background: #e0e0e0;
+}
+#polygons-filling-methods li.active {
+    background: #ccc;
+}
+
+
+#canvas {
+    border: 2px solid black;
+}
+
+#canvasContainer {
+    position: relative;
+    margin-top: 20px;
+    border: 1px solid black;
+}
+
+#create_bpline {
+    margin-top: 5px;
+}
+
+.debug-button {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background-color: #45ee03;
+  color: #ffffff;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+#debugControls {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background-color: #424246;
+  display: none;
+}
+
+#stepButton, #stopButton {
+  background-color: #007bff;
+  color: #fff;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.debug-hidden {
+  display: none;
+}
+
+.methods {
+    position
+    : relative;
+    z-index: 0;
+}
+
+.point {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background-color: red;
+    border-radius: 50%;
+    cursor: move;
+    z-index: 10;
+}
+
+#3dfigure-characteristics {
+    display: flex;
+    gap: 20px;
+    padding: 10px;
+}
+
+.characteristics-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+}
+
+.characteristics-group label {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.characteristics-group input {
+    width: 60px;
+    padding: 2px;
+}
+
+.characteristics-group input[type="checkbox"] {
+    width: auto;
+}

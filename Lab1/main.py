@@ -571,7 +571,176 @@ coords = multiply_matrices(coords,M)
 
 edges =[[0,1],[0,2],[3,1],[3,2], [0,4],[1,4],[2,4],[3,4]]
 fig = Figure(coords,edges)
-fig.draw()
+# fig.draw()
+
+from collections import deque
+
+def point_in_polygon(point, polygon):
+    """Проверка, лежит ли точка внутри полигона методом трассировки луча"""
+    x, y = point
+    inside = False
+    n = len(polygon)
+    for i in range(n):
+        xi, yi = polygon[i]
+        xj, yj = polygon[(i + 1) % n]
+        if ((yi > y) != (yj > y)):
+            x_intersect = (xj - xi) * (y - yi) / (yj - yi + 1e-10) + xi
+            if x < x_intersect:
+                inside = not inside
+    return inside
+
+def seed_fill_auto(polygon, width, height):
+    """Алгоритм заливки полигона с затравкой"""
+    
+    # 1️⃣ Вычисляем центроид полигона (среднюю точку)
+    avg_x = sum(p[0] for p in polygon) / len(polygon)
+    avg_y = sum(p[1] for p in polygon) / len(polygon)
+    seed_point = (int(avg_x), int(avg_y))
+
+    # 2️⃣ Проверяем, внутри ли точка (если нет, ищем ближайшую точку внутри)
+    if not point_in_polygon(seed_point, polygon):
+        # Ищем ближайшую точку внутри полигона
+        for dy in range(1, max(width, height)):
+            for dx in range(-dy, dy + 1):
+                test_point = (seed_point[0] + dx, seed_point[1] + dy)
+                if 0 <= test_point[0] < width and 0 <= test_point[1] < height:
+                    if point_in_polygon(test_point, polygon):
+                        seed_point = test_point
+                        break
+            else:
+                continue
+            break
+
+    print(f"Начинаем заливку с точки: {seed_point}")
+
+    # 3️⃣ Заливаем область с затравкой (используем стек для 4-связности)
+    filled = set()
+    stack = deque()
+    stack.append(seed_point)
+
+    points = []
+
+    while stack:
+        x, y = stack.pop()
+        if (x, y) in filled or not (0 <= x < width and 0 <= y < height):
+            continue
+        
+        if point_in_polygon((x, y), polygon):
+            filled.add((x, y))
+            points.append({'x': x, 'y': y, 'shade': 0.5})  # Добавляем точку в список заливки
+            canvas.create_oval(x, y, x + 1, y+ 1, fill="black")
+            # Добавляем соседние точки в стек (4-связность)
+            stack.append((x + 1, y))
+            stack.append((x - 1, y))
+            stack.append((x, y + 1))
+            stack.append((x, y - 1))
+
+    print(f"Всего добавлено точек: {len(points)}")
+    return points
+
+def is_border(x, y, polygon):
+    """
+    Проверяет, является ли точка (x, y) частью границы полигона.
+    """
+    for i in range(len(polygon)):
+        x1, y1 = polygon[i]
+        x2, y2 = polygon[(i + 1) % len(polygon)]
+        if (x1 == x2):  # Вертикальный отрезок
+            if x == x1 and min(y1, y2) <= y <= max(y1, y2):
+                return True
+        elif (y1 == y2):  # Горизонтальный отрезок
+            if y == y1 and min(x1, x2) <= x <= max(x1, x2):
+                return True
+        else:
+            # Для простоты считаем только оси-ориентированные полигоны
+            continue
+    return False
+
+def scanline_fill(polygon,width, height):
+    """
+    Реализует построчный алгоритм заполнения с затравкой.
+    polygon: список вершин полигона [(x1, y1), (x2, y2), ...]
+    seed: (x, y) — координата затравки
+    Возвращает список точек, которые были залиты.
+    """
+    # 1️⃣ Вычисляем центроид полигона (среднюю точку)
+    avg_x = sum(p[0] for p in polygon) / len(polygon)
+    avg_y = sum(p[1] for p in polygon) / len(polygon)
+    seed_point = (int(avg_x), int(avg_y))
+
+    # 2️⃣ Проверяем, внутри ли точка (если нет, ищем ближайшую точку внутри)
+    if not point_in_polygon(seed_point, polygon):
+        # Ищем ближайшую точку внутри полигона
+        for dy in range(1, max(width, height)):
+            for dx in range(-dy, dy + 1):
+                test_point = (seed_point[0] + dx, seed_point[1] + dy)
+                if 0 <= test_point[0] < width and 0 <= test_point[1] < height:
+                    if point_in_polygon(test_point, polygon):
+                        seed_point = test_point
+                        break
+            else:
+                continue
+            break
+
+    print(f"Начинаем заливку с точки: {seed_point}")
+
+    # 3️⃣ Заливаем область с затравкой (используем стек для 4-связности)
+    filled = set()
+    stack = deque()
+    stack.append(seed_point)
+
+    points = []
+
+    while stack:
+        x, y = stack.pop()
+        if ()
+
+
+    min_x = min(p[0] for p in polygon)
+    max_x = max(p[0] for p in polygon)
+    min_y = min(p[1] for p in polygon)
+    max_y = max(p[1] for p in polygon)
+    
+    filled = set()  # множество залитых точек
+    stack = [seed]
+
+    while stack:
+        x, y = stack.pop()
+
+        # Пропускаем если уже залито или на границе
+        if (x, y) in filled or is_border(x, y, polygon):
+            continue
+
+        # Расширяем интервал влево
+        xl = x
+        while xl >= min_x and not is_border(xl, y, polygon) and (xl, y) not in filled:
+            filled.add((xl, y))
+            xl -= 1
+        xl += 1  # возвращаемся на последний валидный
+
+        # Расширяем интервал вправо
+        xr = x + 1
+        while xr <= max_x and not is_border(xr, y, polygon) and (xr, y) not in filled:
+            filled.add((xr, y))
+            xr += 1
+        xr -= 1
+
+        # Проверяем строки сверху и снизу
+        for new_y in [y - 1, y + 1]:
+            if new_y < min_y or new_y > max_y:
+                continue
+            in_span = False
+            for xi in range(xl, xr + 1):
+                if (xi, new_y) not in filled and not is_border(xi, new_y, polygon):
+                    if not in_span:
+                        stack.append((xi, new_y))
+                        in_span = True
+                else:
+                    in_span = False
+
+    return list(filled)
+
+points = seed_fill_auto([[0,0], [100,0],[320,200], [0,100]],800,600)
 
 
 # Создаем кнопку для рисования прямой
