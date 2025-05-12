@@ -493,7 +493,7 @@ root = tk.Tk()
 root.title("Рисование прямой между двумя точками")
 
 # Создаем элементы управления для ввода координат точек
-label_x1 = tk.Label(root, text="x1:")
+'''label_x1 = tk.Label(root, text="x1:")
 label_x1.pack()
 entry_x1 = tk.Entry(root)
 entry_x1.pack()
@@ -511,7 +511,7 @@ entry_x2.pack()
 label_y2 = tk.Label(root, text="y2:")
 label_y2.pack()
 entry_y2 = tk.Entry(root)
-entry_y2.pack()
+entry_y2.pack()'''
 
 # Создаем холст
 canvas = tk.Canvas(root, width=800, height=600, bg="white")
@@ -555,24 +555,51 @@ class Figure:
             c[1]+=300
             c[2]/=c[3]
             canvas.create_oval(c[0], c[1], c[0] + 1, c[1]+ 1, fill="black")
+
+        # Определяем грани (треугольники)
+        faces = [
+            [0,1,2], [1,3,2],        # основание
+            [0,1,4], [1,3,4], [3,2,4], [2,0,4]  # боковые грани
+        ]
+
         for edge in self.edges:
             line(output[edge[0]][0],output[edge[0]][1],output[edge[1]][0],output[edge[1]][1])
-        
-coords = [[-100,100,0,1],[100,100,0,1],[-100,-100,0,1],[100,-100,0,1],[0,0,100,1]]
-T = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[100,150,0,1]]
-Rz=[[math.cos(math.radians(45)),math.sin(math.radians(45)),0,0],[-math.sin(math.radians(45)),math.cos(math.radians(45)),0,0],[0,0,1,0],[0,0,0,1]]
-Rx=[[1,0,0,0],[0,math.cos(math.radians(90)),math.sin(math.radians(90)),0],[0,-math.sin(math.radians(90)),math.cos(math.radians(90)),0],[0,0,0,1]]
-Ry=[[math.cos(math.radians(45)),0,-math.sin(math.radians(45)),0],[0,1,0,0],[math.sin(math.radians(45)),0,math.cos(math.radians(45)),0],[0,0,0,1]]
-S=[[0.5,0,0,0],[0,0.5,0,0],[0,0,0.5,0],[0,0,0,1]]
-M=[[-1,0,0,0],[0,-1,0,0],[0,0,-1,0],[0,0,0,1]]
-coords = multiply_matrices(coords,Rx)
-coords = multiply_matrices(coords,T)
-coords = multiply_matrices(coords,M)
 
-edges =[[0,1],[0,2],[3,1],[3,2], [0,4],[1,4],[2,4],[3,4]]
+        
+coords = [[-100,100,0,1],[100,100,0,1],[-100,-100,0,1],[100,-100,0,1],
+[-100,100,100,1],[100,100,100,1],[-100,-100,100,1],[100,-100,100,1]]
+edges =[[0,1],[0,2],[0,4],
+[3,1],[3,2],[3,7],
+[6,4],[6,2],[6,7],
+[5,4],[5,1],[5,7]]
+
+T = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
+rx = 120
+Rx=[[1,0,0,0],[0,math.cos(math.radians(rx)),math.sin(math.radians(rx)),0],[0,-math.sin(math.radians(rx)),math.cos(math.radians(rx)),0],[0,0,0,1]]
+ry = 0
+Ry=[[math.cos(math.radians(ry)),0,-math.sin(math.radians(ry)),0],[0,1,0,0],[math.sin(math.radians(ry)),0,math.cos(math.radians(ry)),0],[0,0,0,1]]
+'''Rz=[[math.cos(math.radians(45)),math.sin(math.radians(45)),0,0],[-math.sin(math.radians(45)),math.cos(math.radians(45)),0,0],[0,0,1,0],[0,0,0,1]]
+S=[[0.5,0,0,0],[0,0.5,0,0],[0,0,0.5,0],[0,0,0,1]]
+M=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]'''
+
+coords = multiply_matrices(coords,Rx)
+coords = multiply_matrices(coords,Ry)
+coords = multiply_matrices(coords,T)
+
 fig = Figure(coords,edges)
 # fig.draw()
 
+'''a = [([400.93393998192585, 346.65965452983266], [480.70318910895475, 303.08151511876713]), ([480.70318910895475, 303.08151511876713], [427.54451778501675, 219.6282801902583]), ([427.54451778501675, 219.6282801902583], [347.7752686579879, 263.2064196013238]), ([347.7752686579879, 263.2064196013238], [400.93393998192585, 346.65965452983266]), ([400.93393998192585, 346.65965452983266], [372.45548221498325, 380.3717198097417]), ([372.45548221498325, 380.3717198097417], [319.29681089104525, 296.91848488123287]), ([319.29681089104525, 296.91848488123287], [347.7752686579879, 263.2064196013238]), ([480.70318910895475, 303.08151511876713], [452.2247313420121, 336.7935803986762]), ([452.2247313420121, 336.7935803986762], [372.45548221498325, 380.3717198097417])]
+
+for i in a:
+    x0,y0 = i[0]
+    x1,y1 = i[1]
+    x0 = int(x0)
+    y0 = int(y0)
+    x1 = int(x1)
+    y1 = int(y1)
+    line(x0,y0,x1,y1)
+'''
 from collections import deque
 
 def point_in_polygon(point, polygon):
@@ -638,113 +665,386 @@ def seed_fill_auto(polygon, width, height):
     print(f"Всего добавлено точек: {len(points)}")
     return points
 
-def is_border(x, y, polygon):
-    """
-    Проверяет, является ли точка (x, y) частью границы полигона.
-    """
-    for i in range(len(polygon)):
-        x1, y1 = polygon[i]
-        x2, y2 = polygon[(i + 1) % len(polygon)]
-        if (x1 == x2):  # Вертикальный отрезок
-            if x == x1 and min(y1, y2) <= y <= max(y1, y2):
-                return True
-        elif (y1 == y2):  # Горизонтальный отрезок
-            if y == y1 and min(x1, x2) <= x <= max(x1, x2):
-                return True
-        else:
-            # Для простоты считаем только оси-ориентированные полигоны
-            continue
-    return False
+import numpy as np
+from scipy.spatial import Delaunay
 
-def scanline_fill(polygon,width, height):
-    """
-    Реализует построчный алгоритм заполнения с затравкой.
-    polygon: список вершин полигона [(x1, y1), (x2, y2), ...]
-    seed: (x, y) — координата затравки
-    Возвращает список точек, которые были залиты.
-    """
-    # 1️⃣ Вычисляем центроид полигона (среднюю точку)
-    avg_x = sum(p[0] for p in polygon) / len(polygon)
-    avg_y = sum(p[1] for p in polygon) / len(polygon)
-    seed_point = (int(avg_x), int(avg_y))
+def delaunay_triangulation(points):
+    points_np = np.array(points)
+    tri = Delaunay(points_np)
+    # Преобразуем каждый треугольник из numpy.array в обычный список
+    triangles_coords = [points_np[triangle].tolist() for triangle in tri.simplices]
+    return triangles_coords
 
-    # 2️⃣ Проверяем, внутри ли точка (если нет, ищем ближайшую точку внутри)
-    if not point_in_polygon(seed_point, polygon):
-        # Ищем ближайшую точку внутри полигона
-        for dy in range(1, max(width, height)):
-            for dx in range(-dy, dy + 1):
-                test_point = (seed_point[0] + dx, seed_point[1] + dy)
-                if 0 <= test_point[0] < width and 0 <= test_point[1] < height:
-                    if point_in_polygon(test_point, polygon):
-                        seed_point = test_point
-                        break
+example_points = [(0, 0), (100, 0), (320, 200), (0, 100),(250,300),(100,600)]
+triangles = delaunay_triangulation(example_points)
+
+'''for tri in triangles:
+    for i in range(3):
+        x0, y0 = tri[i]
+        x1, y1 = tri[(i+1)%3]
+        points = line(x0, y0, x1, y1)'''
+
+
+
+'''import numpy as np
+from scipy.spatial import Voronoi
+def voronoi_segments_in_rectangle(points, a, b):
+    vor = Voronoi(points)
+    segments = []
+
+    # Прямоугольная граница
+    xmin, xmax = 0, a
+    ymin, ymax = 0, b
+
+    for ridge_vertices in vor.ridge_vertices:
+        if -1 in ridge_vertices:
+            continue  # Пропустить бесконечные ребра
+
+        p1 = vor.vertices[ridge_vertices[0]]
+        p2 = vor.vertices[ridge_vertices[1]]
+
+        # Оставить только те, что находятся внутри прямоугольника
+        if all([
+            xmin <= p1[0] <= xmax,
+            ymin <= p1[1] <= ymax,
+            xmin <= p2[0] <= xmax,
+            ymin <= p2[1] <= ymax
+        ]):
+            segments.append((tuple(p1), tuple(p2)))
+
+    return segments
+'''
+
+
+
+from scipy.spatial import Voronoi
+
+def line_intersection(p0, p1, p2, p3):
+    """
+    Пересечение отрезков p0p1 и p2p3.
+    Возвращает точку пересечения или None.
+    """
+    s10 = p1 - p0
+    s32 = p3 - p2
+
+    denom = s10[0]*s32[1] - s32[0]*s10[1]
+    if denom == 0:
+        return None  # Параллельны
+
+    denom_is_positive = denom > 0
+
+    s02 = p0 - p2
+    s_numer = s10[0]*s02[1] - s10[1]*s02[0]
+    t_numer = s32[0]*s02[1] - s32[1]*s02[0]
+
+    if (s_numer < 0) == denom_is_positive:
+        return None  # Нет пересечения
+    if (t_numer < 0) == denom_is_positive:
+        return None
+    if (s_numer > denom) == denom_is_positive:
+        return None
+    if (t_numer > denom) == denom_is_positive:
+        return None
+
+    t = t_numer / denom
+    intersection = p0 + t * s10
+    return intersection
+
+def clip_ray_to_rectangle(p, direction, xmin, xmax, ymin, ymax):
+    """
+    Обрезать луч (p + t*direction, t>=0) по прямоугольнику.
+    Возвращает точку пересечения с границей прямоугольника.
+    """
+    intersections = []
+
+    rect_lines = [
+        (np.array([xmin, ymin]), np.array([xmax, ymin])),  # низ
+        (np.array([xmax, ymin]), np.array([xmax, ymax])),  # право
+        (np.array([xmax, ymax]), np.array([xmin, ymax])),  # верх
+        (np.array([xmin, ymax]), np.array([xmin, ymin])),  # лево
+    ]
+
+    for p0, p1 in rect_lines:
+        inter = line_intersection(p, p + direction*1e6, p0, p1)
+        if inter is not None:
+            # Проверяем, что точка лежит в направлении луча (t>=0)
+            t = np.dot(inter - p, direction)
+            if t >= 0:
+                intersections.append(inter)
+
+    if not intersections:
+        return None
+
+    # Выбираем ближайшую точку пересечения
+    distances = [np.linalg.norm(inter - p) for inter in intersections]
+    min_index = np.argmin(distances)
+    return intersections[min_index]
+
+def voronoi_segments_in_rectangle(points, a, b):
+    vor = Voronoi(points)
+    segments = []
+
+    xmin, xmax = 0, a
+    ymin, ymax = 0, b
+
+    # Контур прямоугольника
+    rect = [(xmin, ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax), (xmin, ymin)]
+
+    for (p1_idx, p2_idx), (v1_idx, v2_idx) in zip(vor.ridge_points, vor.ridge_vertices):
+        if v1_idx >= 0 and v2_idx >= 0:
+            # Конечное ребро
+            p1 = vor.vertices[v1_idx]
+            p2 = vor.vertices[v2_idx]
+
+            # Обрезаем отрезок по прямоугольнику (если нужно)
+            # Проверим, что хотя бы часть отрезка внутри прямоугольника
+            if (xmin <= p1[0] <= xmax and ymin <= p1[1] <= ymax) or \
+               (xmin <= p2[0] <= xmax and ymin <= p2[1] <= ymax):
+                # Можно просто добавить отрезок, т.к. он внутри или пересекает
+                segments.append((tuple(p1), tuple(p2)))
             else:
-                continue
-            break
+                # Можно попытаться обрезать, но обычно такие ребра не нужны
+                pass
 
-    print(f"Начинаем заливку с точки: {seed_point}")
+        else:
+            # Бесконечное ребро
+            # Найдём конечную вершину
+            if v1_idx == -1:
+                v_finite = v2_idx
+            else:
+                v_finite = v1_idx
 
-    # 3️⃣ Заливаем область с затравкой (используем стек для 4-связности)
-    filled = set()
-    stack = deque()
-    stack.append(seed_point)
+            finite_vertex = vor.vertices[v_finite]
 
-    points = []
+            # Точки, породившие ребро
+            point1 = vor.points[p1_idx]
+            point2 = vor.points[p2_idx]
 
-    while stack:
-        x, y = stack.pop()
-        if ()
+            # Вектор между точками
+            dp = point2 - point1
+            # Нормаль к ребру (перпендикуляр)
+            n = np.array([-dp[1], dp[0]])
+            n /= np.linalg.norm(n)
+
+            # Направление луча должно быть в сторону, где находится бесконечная вершина
+            # Проверим направление: если вектор от finite_vertex в сторону точки n ближе к центру
+            midpoint = (point1 + point2) / 2
+            direction = n
+
+            # Проверим, что направление в сторону бесконечности
+            # Для этого проверим, что точка finite_vertex + direction далеко от центра точек
+            center = points.mean(axis=0)
+            if np.dot(finite_vertex - center, direction) < 0:
+                direction = -direction
+
+            # Найдём пересечение луча с прямоугольником
+            intersection = clip_ray_to_rectangle(finite_vertex, direction, xmin, xmax, ymin, ymax)
+            if intersection is not None:
+                segments.append((tuple(finite_vertex), tuple(intersection)))
+
+    return segments, rect
+
+# Пример использования:
+num_points = 8
+a, b = 800, 600
+points = np.random.rand(num_points, 2) * [a, b]
 
 
-    min_x = min(p[0] for p in polygon)
-    max_x = max(p[0] for p in polygon)
-    min_y = min(p[1] for p in polygon)
-    max_y = max(p[1] for p in polygon)
-    
-    filled = set()  # множество залитых точек
-    stack = [seed]
 
-    while stack:
-        x, y = stack.pop()
+segments, w = voronoi_segments_in_rectangle(points, a, b)
 
-        # Пропускаем если уже залито или на границе
-        if (x, y) in filled or is_border(x, y, polygon):
-            continue
+'''for point in points:
+    x, y =point
+    canvas.create_oval(x, y, x + 3, y+ 3, fill="black")
+for seg in segments:
+    x0, y0 = seg[0]
+    x1, y1 = seg[1]
+    line(x0, y0, x1, y1)'''
 
-        # Расширяем интервал влево
-        xl = x
-        while xl >= min_x and not is_border(xl, y, polygon) and (xl, y) not in filled:
-            filled.add((xl, y))
-            xl -= 1
-        xl += 1  # возвращаемся на последний валидный
 
-        # Расширяем интервал вправо
-        xr = x + 1
-        while xr <= max_x and not is_border(xr, y, polygon) and (xr, y) not in filled:
-            filled.add((xr, y))
-            xr += 1
-        xr -= 1
 
-        # Проверяем строки сверху и снизу
-        for new_y in [y - 1, y + 1]:
-            if new_y < min_y or new_y > max_y:
-                continue
-            in_span = False
-            for xi in range(xl, xr + 1):
-                if (xi, new_y) not in filled and not is_border(xi, new_y, polygon):
-                    if not in_span:
-                        stack.append((xi, new_y))
-                        in_span = True
+INSIDE, LEFT, RIGHT, BOTTOM, TOP = 0, 1, 2, 4, 8
+
+def compute_out_code(x, y, xmin, ymin, xmax, ymax):
+    code = INSIDE
+    if x < xmin:
+        code |= LEFT
+    elif x > xmax:
+        code |= RIGHT
+    if y < ymin:
+        code |= BOTTOM
+    elif y > ymax:
+        code |= TOP
+    return code
+
+def cohen_sutherland_clip(p1, p2, segments):
+    # Автоматическое определение границ прямоугольника
+    xmin = min(p1[0], p2[0])
+    xmax = max(p1[0], p2[0])
+    ymin = min(p1[1], p2[1])
+    ymax = max(p1[1], p2[1])
+
+    clipped_segments = []
+
+    for segment in segments:
+        x1, y1 = segment[0]
+        x2, y2 = segment[1]
+
+        out_code1 = compute_out_code(x1, y1, xmin, ymin, xmax, ymax)
+        out_code2 = compute_out_code(x2, y2, xmin, ymin, xmax, ymax)
+
+        accept = False
+
+        while True:
+            if not (out_code1 | out_code2):
+                accept = True
+                break
+            elif out_code1 & out_code2:
+                break
+            else:
+                out_code_out = out_code1 if out_code1 else out_code2
+
+                if out_code_out & TOP:
+                    x = x1 + (x2 - x1) * (ymax - y1) / (y2 - y1)
+                    y = ymax
+                elif out_code_out & BOTTOM:
+                    x = x1 + (x2 - x1) * (ymin - y1) / (y2 - y1)
+                    y = ymin
+                elif out_code_out & RIGHT:
+                    y = y1 + (y2 - y1) * (xmax - x1) / (x2 - x1)
+                    x = xmax
+                elif out_code_out & LEFT:
+                    y = y1 + (y2 - y1) * (xmin - x1) / (x2 - x1)
+                    x = xmin
+
+                if out_code_out == out_code1:
+                    x1, y1 = x, y
+                    out_code1 = compute_out_code(x1, y1, xmin, ymin, xmax, ymax)
                 else:
-                    in_span = False
+                    x2, y2 = x, y
+                    out_code2 = compute_out_code(x2, y2, xmin, ymin, xmax, ymax)
 
-    return list(filled)
+        if accept:
+            clipped_segments.append([[round(x1, 2), round(y1, 2)], [round(x2, 2), round(y2, 2)]])
 
-points = seed_fill_auto([[0,0], [100,0],[320,200], [0,100]],800,600)
+    return clipped_segments
+
+rect_point1 = [100, 50]
+rect_point2 = [400, 300]
+
+segments = [
+    [[0, 0], [600, 600]],     # частично входит
+    [[200, 200], [100, 400]],     # полностью внутри
+    [[0, 300], [300, 0]],     # частично входит
+    [[600, 600], [700, 700]]      # полностью вне
+]
+
+segments = cohen_sutherland_clip(rect_point1, rect_point2, segments)
+
+'''line(rect_point1[0],rect_point1[1],rect_point2[0],rect_point1[1])
+line(rect_point2[0],rect_point1[1],rect_point2[0],rect_point2[1])print(segments)
+for seg in segments:
+    x0, y0 = seg[0]
+    x1, y1 = seg[1]
+    line(x0, y0, x1, y1)'''
+
+
+def get_drawn_edges_coords(rotation_angles, show_hidden_faces):
+    """
+    rotation_angles: (rx, ry, rz) в радианах
+    show_hidden_faces: bool - показывать все грани или скрывать невидимые
+
+    Возвращает список ребер [(p1, p2), ...], где p1 и p2 - 2D координаты (x, y)
+    """
+    rx, ry, rz = rotation_angles
+    size = 100 / 2
+
+    def rotate_point(p):
+        x, y, z = p
+
+        # Вращение по X
+        cosx, sinx = math.cos(rx), math.sin(rx)
+        y, z = y * cosx - z * sinx, y * sinx + z * cosx
+
+        # Вращение по Y
+        cosy, siny = math.cos(ry), math.sin(ry)
+        x, z = x * cosy + z * siny, -x * siny + z * cosy
+
+        # Вращение по Z
+        cosz, sinz = math.cos(rz), math.sin(rz)
+        x, y = x * cosz - y * sinz, x * sinz + y * cosz
+
+        return [x, y, z]
+
+    vertices = [
+        [-size, -size, -size],
+        [size, -size, -size],
+        [size, size, -size],
+        [-size, size, -size],
+        [-size, -size, size],
+        [size, -size, size],
+        [size, size, size],
+        [-size, size, size]
+    ]
+
+    rotated = [rotate_point(v) for v in vertices]
+    projected = [[400 + x, 300 - y, z] for x, y, z in rotated]
+
+    faces = [
+        {"vertices": [0, 1, 2, 3], "normal": [0, 0, -1]},
+        {"vertices": [4, 5, 6, 7], "normal": [0, 0, 1]},
+        {"vertices": [1, 5, 6, 2], "normal": [1, 0, 0]},
+        {"vertices": [0, 4, 7, 3], "normal": [-1, 0, 0]},
+        {"vertices": [3, 2, 6, 7], "normal": [0, 1, 0]},
+        {"vertices": [0, 1, 5, 4], "normal": [0, -1, 0]}
+    ]
+
+    # Вычисляем среднюю глубину для сортировки
+    for face in faces:
+        z_sum = sum(projected[i][2] for i in face["vertices"])
+        face["avg_z"] = z_sum / len(face["vertices"])
+
+    faces_sorted = sorted(faces, key=lambda f: f["avg_z"], reverse=True)
+
+    drawn_edges = set()
+    edges_coords = []
+
+    for face in reversed(faces_sorted):
+        # Вращаем нормаль
+        n = rotate_point(face["normal"])
+        dot = n[2] * -1
+        visible = dot > 0
+
+        if show_hidden_faces or visible:
+            verts = face["vertices"]
+            for i in range(len(verts)):
+                v1 = verts[i]
+                v2 = verts[(i + 1) % len(verts)]
+                edge_key = tuple(sorted((v1, v2)))
+                if edge_key not in drawn_edges:
+                    drawn_edges.add(edge_key)
+                    p1 = projected[v1][:2]
+                    p2 = projected[v2][:2]
+                    edges_coords.append((p1, p2))
+
+    return edges_coords
+
+# Углы в градусах
+rx_deg, ry_deg, rz_deg = 45, 45, 45
+# Конвертируем в радианы
+rotation = (math.radians(rx_deg), math.radians(ry_deg), math.radians(rz_deg))
+
+edges_to_draw = get_drawn_edges_coords(rotation, show_hidden_faces=True)
+
+for seg in edges_to_draw:
+    x0, y0 = seg[0]
+    x1, y1 = seg[1]
+    canvas.create_line(x0, y0, x1, y1)
+
 
 
 # Создаем кнопку для рисования прямой
-button = tk.Button(root, text="Нарисовать эллипс", command=BresenhamCircle)
+'''button = tk.Button(root, text="Нарисовать эллипс", command=BresenhamCircle)
 button.pack()
 button = tk.Button(root, text="Нарисовать параболу", command=drawParabola2)
 button.pack()
@@ -758,7 +1058,7 @@ button = tk.Button(root, text="Безье", command=Beze)
 button.pack()
 
 button = tk.Button(root, text="B-сплайн", command=Bspline)
-button.pack()
+button.pack()'''
 
 # Запускаем главный цикл обработки событий
 root.mainloop()

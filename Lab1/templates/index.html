@@ -76,6 +76,30 @@
             <li onclick="selectPolygonsFillingMethods('flood_fill_line')">Построчное заполнение с затравкой</li>
         </span>
 
+        <span id="tool-triangulation_voronoi" onmouseover = 
+            "document.getElementById('triangulation_voronoi-methods').style.display = 'block';"
+            onmouseout="document.getElementById('triangulation_voronoi-methods').style.display = 'none';"
+            >Триангуляция и диаграмма Вороного</span>
+
+        <span id="triangulation_voronoi-methods" onmouseover = 
+            "document.getElementById('triangulation_voronoi-methods').style.display = 'block';" 
+            onmouseout="document.getElementById('triangulation_voronoi-methods').style.display = 'none';">
+            <li onclick="selectTriangulationVoronoiMethods('triangulation')">Триангуляция</li>
+            <li onclick="selectTriangulationVoronoiMethods('voronoi')">Диаграмма Вороного</li>
+        </span>
+
+        <span id="tool-hidden_invisible" onmouseover = 
+            "document.getElementById('hidden_invisible-methods').style.display = 'block';"
+            onmouseout="document.getElementById('hidden_invisible-methods').style.display = 'none';"
+            >Удаление невидимых линий</span>
+
+        <span id="hidden_invisible-methods" onmouseover = 
+            "document.getElementById('hidden_invisible-methods').style.display = 'block';" 
+            onmouseout="document.getElementById('hidden_invisible-methods').style.display = 'none';">
+            <li onclick="selectHiddenInvisibleMethods('hidden_lines')">Отсечение невидимых линий</li>
+            <li onclick="selectHiddenInvisibleMethods('hidden_faces')">Удаление невидимых граней</li>
+        </span>
+
         <!---->
 
     </div>
@@ -151,6 +175,19 @@
             <button onclick="drawFillingPolygon()">Простое заполнение с затравкой</button>
         </span>
 
+        <span id="triangulation-method">
+            <button onclick="drawTriangulation()">Построить триангуляцию Делоне</button>
+        </span>
+        <span id="voronoi-method">
+            <button onclick="drawVoronoi()">Построить диаграмму Вороного</button>
+        </span>
+
+        <span id="hidden_lines-method"></span>
+        <span id="hidden_faces-method">
+            <div id="cube-characteristics">                
+            </div>
+        </span>
+
         <!---->
 
     </div>
@@ -159,8 +196,11 @@
         <canvas id="canvas" width="800" height="600"></canvas>
     </div>
 
-    <div class="debug-button" id="debugButton">Отладка</div>
+    <div>
+        <button onclick="clearCanvas()">Очистить холст</button>
+    </div>
 
+    <div class="debug-button" id="debugButton">Отладка</div>
     <div class="debug-hidden" id="debugControls">
       <button id="stepButton">Шаг</button>
       <button id="stopButton">Остановить</button>
@@ -191,6 +231,7 @@
         var gettingPoints = new Points(); // для lines и curves, отладки
         var points_for_polygon = []; // используется для отрисовки полигонов
         var polygon_figures = []; // хранит все полигоны
+        var lines_figures = []; // хранит все отрезки
 
         class ToolManager {
             constructor() {
@@ -224,8 +265,9 @@
         toolManager.addTool('3dfigure',document.getElementById('tool-3dfigure'));
         toolManager.addTool('polygons',document.getElementById('tool-polygons'));
         toolManager.addTool('filling_polygons',document.getElementById('tool-filling-polygons'));
+        toolManager.addTool('triangulation_voronoi',document.getElementById('tool-triangulation_voronoi'))
+        toolManager.addTool('hidden_invisible',document.getElementById('tool-hidden_invisible'))
         // 
-
 
         class MethodManager {
             constructor() {
@@ -277,6 +319,12 @@
         methodManager.addMethod('scanline_aet', document.getElementById('scanline_aet-method'));
         methodManager.addMethod('flood_fill_line', document.getElementById('flood_fill_line-method'));
         methodManager.addMethod('flood_fill', document.getElementById('flood_fill-method'));
+
+        methodManager.addMethod('triangulation', document.getElementById('triangulation-method'));
+        methodManager.addMethod('voronoi', document.getElementById('voronoi-method'));
+
+        methodManager.addMethod('hidden_lines', document.getElementById('hidden_lines-method'));
+        methodManager.addMethod('hidden_faces', document.getElementById('hidden_faces-method'));
         //
 
         class InterpolationTool {
@@ -695,6 +743,8 @@
                     socket.emit('generate_line', {'method': methodManager.getActiveMethod(),
                         'x0': x0, 'y0': y0, 'x1': x1, 'y1': y1});
 
+                    lines_figures.push([[x0,y0],[x1,y1]]);
+
                     polygons_coords = [];
                     for (let polygon of polygon_figures) {
                         polygons_coords.push(polygon.points);
@@ -799,6 +849,53 @@
                 ctx.fillStyle = 'black';
                 ctx.fillRect(x, y, 2, 2);
             }
+            else if (toolManager.getActiveTool()=='triangulation_voronoi') {
+                x = event.offsetX;
+                y = event.offsetY;
+                points_for_polygon.push([x, y]);
+                ctx.fillStyle = 'black';
+                ctx.fillRect(x, y, 2, 2);
+            }
+            else if (toolManager.getActiveTool() == 'hidden_invisible') {
+                if (methodManager.getActiveMethod()=='hidden_lines') {
+                    if (!prevPoint) {
+                        prevPoint = {x: event.offsetX, y: event.offsetY};
+                    }
+                    else {
+                        const endX = event.offsetX;
+                        const endY = event.offsetY;
+                        const prevX = prevPoint.x;
+                        const prevY = prevPoint.y;
+                        
+                        socket.emit('remove_invisible_lines', {'lines':lines_figures,'rect': [[prevX,prevY],[endX,endY]]}, (data) => {
+                        if (data.error) {
+                            console.error("Ошибка от сервера:", data.error);
+                        } else {
+                            new_lines = data.lines;                            
+                            clearCanvas();
+                            lines_figures = new_lines;
+                            points = data.points;
+
+                            points.forEach(function(point) 
+                            {
+                                var shade = point.shade;
+                                var color = 'rgba(0, 0, 0, ' + shade + ')';
+                                ctx.fillStyle = color;
+                                ctx.fillRect(point.x, point.y, 1, 1);     
+                            });
+                        }
+                        prevPoint = null;
+                        const x = Math.min(prevX, endX);
+                        const y = Math.min(prevY, endY);
+                        const width = Math.abs(endX - prevX);
+                        const height = Math.abs(endY - prevY);
+                        ctx.strokeStyle = 'black';
+                        ctx.strokeRect(x, y, width, height);
+                    });
+
+                    }
+                }
+            }
         });
 
         var points_for_interpolation = []; // используется для отрисовки интерполяций
@@ -889,6 +986,60 @@
                 else {
                     const newPolygon = new Polygon(points_for_polygon, methodManager.getActiveMethod());
                     polygon_figures.push(newPolygon);
+                    points_for_polygon=[];
+                }
+            }
+        }
+
+        function drawTriangulation() {
+            if (toolManager.getActiveTool()=='triangulation_voronoi') {
+                if (points_for_polygon.length<3) {
+                    alert('Для построения нужно не менее 3 точек.');
+                    return;
+                    }
+                else {
+                    socket.emit('triangulation_voronoi', {'method':methodManager.getActiveMethod(),'points': points_for_polygon}, (data) => {
+                    if (data.error) {
+                        console.error("Ошибка от сервера:", data.error);
+                    } else {         
+
+                        var points = data.points
+                        points.forEach(function(point) 
+                        {
+                            var shade = point.shade;
+                            var color = 'rgba(0, 0, 0, ' + shade + ')';
+                            ctx.fillStyle = color;
+                            ctx.fillRect(point.x, point.y, 1, 1);     
+                        });                      
+                    }
+                    })
+                    points_for_polygon=[];
+                }
+            }
+        }
+
+        function drawVoronoi() {
+            if (toolManager.getActiveTool()=='triangulation_voronoi') {
+                if (points_for_polygon.length<2) {
+                    alert('Для построения нужно не менее 4 точек.');
+                    return;
+                    }
+                else {
+                    socket.emit('triangulation_voronoi', {'method':methodManager.getActiveMethod(),'points': points_for_polygon}, (data) => {
+                    if (data.error) {
+                        console.error("Ошибка от сервера:", data.error);
+                    } else {         
+
+                        var points = data.points
+                        points.forEach(function(point) 
+                        {
+                            var shade = point.shade;
+                            var color = 'rgba(0, 0, 0, ' + shade + ')';
+                            ctx.fillStyle = color;
+                            ctx.fillRect(point.x, point.y, 1, 1);     
+                        });                      
+                    }
+                    })
                     points_for_polygon=[];
                 }
             }
@@ -1037,7 +1188,125 @@
             methodManager.setActiveMethod(tool);
         }
 
+        function selectTriangulationVoronoiMethods(tool) {
+            var tools = document.querySelectorAll('.toolbar li');
+            tools.forEach(function(tool) {
+                tool.classList.remove('active');
+            });
+
+            var selectMethod = document.querySelector('#triangulation_voronoi-methods li:nth-child(' + (['triangulation', 'voronoi'].indexOf(tool)+1) + ')');
+            selectMethod.classList.add('active');
+            document.getElementById('triangulation_voronoi-methods').style.display = 'none';
+            toolManager.setActiveTool('triangulation_voronoi');
+            methodManager.setActiveMethod(tool);            
+        }
+
+        function selectHiddenInvisibleMethods(tool) {
+            var tools = document.querySelectorAll('.toolbar li');
+            tools.forEach(function(tool) {
+                tool.classList.remove('active');
+            });
+
+            var selectMethod = document.querySelector('#hidden_invisible-methods li:nth-child(' + (['hidden_lines', 'hidden_faces'].indexOf(tool)+1) + ')');
+            selectMethod.classList.add('active');
+            document.getElementById('hidden_invisible-methods').style.display = 'none';
+            toolManager.setActiveTool('hidden_invisible');
+            methodManager.setActiveMethod(tool); 
+            if (tool == 'hidden_faces')
+            {
+                figure = new Cube()
+            }
+        }
+
         //
+
+        class Cube{
+            constructor() {
+                this.is_hidden = true;
+                this.rx = 45;
+                this.ry = 45;
+                this.rz = 45;
+
+                const characteristicsSpan = document.getElementById("cube-characteristics");
+                characteristicsSpan.innerHTML='';
+                // Создаем контейнеры для групп характеристик
+                const rotationDiv = document.createElement('div');
+                const hiddenDiv = document.createElement('div');
+
+                // Добавляем класс для группировки
+                [rotationDiv,hiddenDiv].forEach(div => {
+                    div.className = 'characteristics-group';
+                });
+
+                // Вращение
+                rotationDiv.innerHTML = `
+                <label>Вращение (градусы):</label>
+                <div>
+                    X: <input type="number" value="${this.rx}" class="rotation-input" data-axis="x"/>
+                    Y: <input type="number" value="${this.ry}" class="rotation-input" data-axis="y"/>
+                    Z: <input type="number" value="${this.rz}" class="rotation-input" data-axis="z"/>
+                </div>
+                `;
+
+                hiddenDiv.innerHTML = `
+                <label>Показать скрытые грани:</label>
+                <div>
+                    X: <input type="checkbox" ${this.is_hidden ? 'checked' : ''} class="hidden-input" data-axis="x"/>
+                </div>
+                `;
+
+                characteristicsSpan.appendChild(rotationDiv);
+                characteristicsSpan.appendChild(hiddenDiv);
+
+                this.setupEventListeners();
+                this.draw();
+            }
+        
+            setupEventListeners() {
+                            
+                // Обработчики для вращения
+                document.querySelectorAll('.rotation-input').forEach(input => {
+                    input.addEventListener('change', (e) => {
+                        const axis = e.target.dataset.axis;
+                        switch(axis) {
+                            case 'x': this.rx = parseFloat(e.target.value) || 0; break;
+                            case 'y': this.ry = parseFloat(e.target.value) || 0; break;
+                            case 'z': this.rz = parseFloat(e.target.value) || 0; break;
+                        }
+                        this.draw();
+                    });
+                });
+            
+                // Обработчики для отражения
+                document.querySelectorAll('.hidden-input').forEach(input => {
+                    input.addEventListener('change', (e) => {
+                        this.is_hidden = e.target.checked;                        
+                        this.draw();
+                    });
+                });
+            }
+        
+            draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                socket.emit('remove_invisible_faces', {
+                    'r':[this.rx,this.ry,this.rz],
+                    'is_hidden':this.is_hidden ? 1 : 0
+                }, (data) => {
+                    if (data.error) {
+                        console.error("Ошибка от сервера:", data.error);
+                    } else {
+                    this.drawing_points = data.points;
+                    this.drawing_points.forEach(function(point) 
+                    {
+                        var shade = point.shade;
+                        var color = 'rgba(0, 0, 0, ' + shade + ')';
+                        ctx.fillStyle = color;
+                        ctx.fillRect(point.x, point.y, 1, 1);     
+                    });
+                    }
+                })
+            }
+        }
 
         const debugButton = document.getElementById('debugButton');
         const debugControls = document.getElementById('debugControls');
@@ -1088,6 +1357,12 @@
             debugButton.style.display = 'block';
             debugging = false;
         });
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            lines_figures=[];
+            prevPoint=null;
+        }
     </script>
 </body>
 </html>

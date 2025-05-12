@@ -1,73 +1,93 @@
-def inside_polygon(polygon, x, y):
-    """Проверка, лежит ли точка (x, y) внутри полигона с использованием алгоритма радиусного пересечения"""
-    n = len(polygon)
-    inside = False
-    px, py = polygon[0]
-    for i in range(n + 1):
-        sx, sy = polygon[i % n]
-        if y > min(py, sy):
-            if y <= max(py, sy):
-                if x <= max(px, sx):
-                    if py != sy:
-                        xinters = (y - py) * (sx - px) / (sy - py) + px
-                    if px == sx or x <= xinters:
-                        inside = not inside
-        px, py = sx, sy
-    return inside
+import math
 
-def flood_fill(polygon, width, height):
-    # Ищем затравочный пиксель
-    start_pixel = None
-    for y in range(height):
-        for x in range(width):
-            if inside_polygon(polygon, x, y):
-                start_pixel = (x, y)
-                break
-        if start_pixel:
-            break
+def get_drawn_edges_coords(rotation_angles, show_hidden_faces):
+    """
+    rotation_angles: (rx, ry, rz) в радианах
+    show_hidden_faces: bool - показывать все грани или скрывать невидимые
 
-    if not start_pixel:
-        return []  # Если нет затравочного пикселя, возвращаем пустой список
+    Возвращает список ребер [(p1, p2), ...], где p1 и p2 - 2D координаты (x, y)
+    """
+    rx, ry, rz = rotation_angles
+    size = 100 / 2
 
-    # Стек для хранения пикселей
-    stack = [start_pixel]
-    filled_ranges = []
+    def rotate_point(p):
+        x, y, z = p
 
-    # Направления для поиска соседей: сверху, снизу, слева, справа
-    while stack:
-        x, y = stack.pop()
+        # Вращение по X
+        cosx, sinx = math.cos(rx), math.sin(rx)
+        y, z = y * cosx - z * sinx, y * sinx + z * cosx
 
-        # Проверяем интервал слева и справа на текущей строке
-        left = x
-        while left > 0 and inside_polygon(polygon, left - 1, y):
-            left -= 1
-        right = x
-        while right < width - 1 and inside_polygon(polygon, right + 1, y):
-            right += 1
+        # Вращение по Y
+        cosy, siny = math.cos(ry), math.sin(ry)
+        x, z = x * cosy + z * siny, -x * siny + z * cosy
 
-        # Запоминаем диапазон
-        filled_ranges.append((y, left, right))
+        # Вращение по Z
+        cosz, sinz = math.cos(rz), math.sin(rz)
+        x, y = x * cosz - y * sinz, x * sinz + y * cosz
 
-        # Проверяем соседние строки (сверху и снизу)
-        if y > 0:
-            for nx in range(left, right + 1):
-                if inside_polygon(polygon, nx, y - 1):
-                    stack.append((nx, y - 1))
-        if y < height - 1:
-            for nx in range(left, right + 1):
-                if inside_polygon(polygon, nx, y + 1):
-                    stack.append((nx, y + 1))
+        return [x, y, z]
 
-    return filled_ranges
+    vertices = [
+        [-size, -size, -size],
+        [size, -size, -size],
+        [size, size, -size],
+        [-size, size, -size],
+        [-size, -size, size],
+        [size, -size, size],
+        [size, size, size],
+        [-size, size, size]
+    ]
 
-# Пример использования:
-polygon = [[0, 0], [100, 0], [320, 200], [0, 100]]  # Пример полигона
-width = 400
-height = 400
+    rotated = [rotate_point(v) for v in vertices]
+    projected = [[400 + x, 300 - y, z] for x, y, z in rotated]
 
-# Получаем диапазоны для заливки
-ranges = flood_fill(polygon, width, height)
+    faces = [
+        {"vertices": [0, 1, 2, 3], "normal": [0, 0, -1]},
+        {"vertices": [4, 5, 6, 7], "normal": [0, 0, 1]},
+        {"vertices": [1, 5, 6, 2], "normal": [1, 0, 0]},
+        {"vertices": [0, 4, 7, 3], "normal": [-1, 0, 0]},
+        {"vertices": [3, 2, 6, 7], "normal": [0, 1, 0]},
+        {"vertices": [0, 1, 5, 4], "normal": [0, -1, 0]}
+    ]
 
-# Выводим результаты
-for row in ranges:
-    print(f"Строка {row[0]}: от {row[1]} до {row[2]}")
+    # Вычисляем среднюю глубину для сортировки
+    for face in faces:
+        z_sum = sum(projected[i][2] for i in face["vertices"])
+        face["avg_z"] = z_sum / len(face["vertices"])
+
+    faces_sorted = sorted(faces, key=lambda f: f["avg_z"], reverse=True)
+
+    drawn_edges = set()
+    edges_coords = []
+
+    for face in reversed(faces_sorted):
+        # Вращаем нормаль
+        n = rotate_point(face["normal"])
+        dot = n[2] * -1
+        visible = dot > 0
+
+        if show_hidden_faces or visible:
+            verts = face["vertices"]
+            for i in range(len(verts)):
+                v1 = verts[i]
+                v2 = verts[(i + 1) % len(verts)]
+                edge_key = tuple(sorted((v1, v2)))
+                if edge_key not in drawn_edges:
+                    drawn_edges.add(edge_key)
+                    p1 = projected[v1][:2]
+                    p2 = projected[v2][:2]
+                    edges_coords.append((p1, p2))
+
+    return edges_coords
+
+import math
+
+# Углы в градусах
+rx_deg, ry_deg, rz_deg = 0, 40, 0
+# Конвертируем в радианы
+rotation = (math.radians(rx_deg), math.radians(ry_deg), math.radians(rz_deg))
+
+edges_to_draw = get_drawn_edges_coords(rotation, show_hidden_faces=False)
+
+for p1, p2 in edges_to_draw:
+    print(f"Edge from {p1} to {p2}")

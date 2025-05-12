@@ -43,6 +43,22 @@
     background: #e0e0e0;
 }
 
+#tool-triangulation_voronoi {
+    cursor: pointer;
+    border: 1px solid #ccc;
+}
+#tool-triangulation_voronoi:hover {
+    background: #e0e0e0;
+}
+
+#tool-hidden_invisible {
+    cursor: pointer;
+    border: 1px solid #ccc;
+}
+#tool-hidden_invisible:hover {
+    background: #e0e0e0;
+}
+
 #lines-methods {
     display: none;
     position: absolute;
@@ -131,7 +147,7 @@
     display: none;
     position: absolute;
     top: 18px;
-    left: 375px;
+    left: 475px;
     background: #f9f9f9;
     padding: 5px;
     border: 1px solid #ccc;
@@ -144,6 +160,48 @@
     background: #e0e0e0;
 }
 #polygons-filling-methods li.active {
+    background: #ccc;
+}
+
+
+#triangulation_voronoi-methods {
+    display: none;
+    position: absolute;
+    top: 18px;
+    left: 630px;
+    background: #f9f9f9;
+    padding: 5px;
+    border: 1px solid #ccc;
+}
+#triangulation_voronoi-methods li {
+    list-style: none;
+    cursor: pointer;
+}
+#triangulation_voronoi-methods li:hover {
+    background: #e0e0e0;
+}
+#triangulation_voronoi-methods li.active {
+    background: #ccc;
+}
+
+
+#hidden_invisible-methods {
+    display: none;
+    position: absolute;
+    top: 18px;
+    left: 900px;
+    background: #f9f9f9;
+    padding: 5px;
+    border: 1px solid #ccc;
+}
+#hidden_invisible-methods li {
+    list-style: none;
+    cursor: pointer;
+}
+#hidden_invisible-methods li:hover {
+    background: #e0e0e0;
+}
+#hidden_invisible-methods li.active {
     background: #ccc;
 }
 
@@ -208,6 +266,12 @@
 }
 
 #3dfigure-characteristics {
+    display: flex;
+    gap: 20px;
+    padding: 10px;
+}
+
+#cube-characteristics {
     display: flex;
     gap: 20px;
     padding: 10px;

@@ -1,245 +1,152 @@
-'''import matplotlib.pyplot as plt
-
-# Координаты точек в формате [[x1, y1, z1], [x2, y2, z2], ...]
-points = [[1, 5, 1], [0, 5, 2]]
-
-# Создаем новый график
-fig = plt.figure()
-
-# Добавляем трехмерное пространство на график
-ax = fig.add_subplot(111, projection='3d')
-
-# Извлекаем координаты x, y, z для каждой точки
-x = [point[0] for point in points]
-y = [point[1] for point in points]
-z = [point[2] for point in points]
-
-# Отображаем точки на трехмерном графике
-ax.scatter(x, y, z)
-
-# Устанавливаем размеры графика
-ax.set_xlim(0, 10)
-ax.set_ylim(0, 10)
-ax.set_zlim(0, 10)
-
-# Отображаем график
-plt.show()'''
-'''
+import tkinter as tk
 import math
-G = [[1, 2], [3, 4], [5, 6], [7, 8]]
 
-extr_point = 0
-for i in range(0,len(G)):
-    if G[extr_point][1] >= G[i][1]:
-        if G[extr_point][1] == G[i][1]:
-            if G[extr_point][0] > G[i][0]:
-                extr_point = i
-        else:
-            extr_point = i
-new_G = [G[extr_point]]
-n = len(G)
-G.pop(extr_point)
-while len(new_G) < n:
-    min_tan = math.atan((G[0][1]-new_G[0][1])/(G[0][0]-new_G[0][0]))
-    min_i = 0
-    min_dist = (G[0][0] - new_G[0][0]) ** 2 + (G[0][1] - new_G[0][1]) ** 2
+# Настройки окна и холста
+root = tk.Tk()
 
-    for i in range(0,len(G)):
-        tan = math.atan((G[i][1]-new_G[0][1])/(G[i][0]-new_G[0][0]))
-        dist = (G[i][0] - new_G[0][0]) ** 2 + (G[i][1] - new_G[0][1]) ** 2
-        if tan < min_tan or (tan==min_tan and dist < min_dist):
-            min_tan = tan
-            min_i = i
-            min_dist = dist
-    new_G.append(G[min_i])
-    G.pop(min_i)
-'''
+root.title("3D Cube Viewer")
 
-def raster_scan_fill(polygon):
-    '''
-    Реализация растровой развертки с упорядоченным списком рёбер.
-    :param polygon: список вершин полигона [(x0, y0), (x1, y1), ..., (xn, yn)]
-    '''
-    '''points = []
-    # 1️⃣ Найдём границы по Y
-    y_min = min(y for _, y in polygon)
-    y_max = max(y for _, y in polygon)
-    # 2️⃣ Создаём список рёбер (каждое ребро - пара вершин)
-    edges = []
-    n = len(polygon)
-    for i in range(n):
-        p1 = polygon[i]
-        p2 = polygon[(i + 1) % n]
-        if p1[1] != p2[1]:  # исключаем горизонтальные рёбра
-            if p1[1] < p2[1]:
-                edges.append({'x0': p1[0], 'y0': p1[1], 'x1': p2[0], 'y1': p2[1]})
-            else:
-                edges.append({'x0': p2[0], 'y0': p2[1], 'x1': p1[0], 'y1': p1[1]})
-    # 3️⃣ Основной цикл по сканирующим строкам
-    for y in range(y_min, y_max + 1):
-        intersections = []
-        # 1. Найти точки пересечения со сканирующими строками
-        for edge in edges:
-            if edge['y0'] <= y < edge['y1']:  # пересекает ли ребро сканирующую строку?
-                x0, y0, x1, y1 = edge['x0'], edge['y0'], edge['x1'], edge['y1']
-                # формула для нахождения x пересечения
-                x_int = x0 + (y - y0) * (x1 - x0) / (y1 - y0)
-                intersections.append(x_int)
-        # 2. Сортировка полученного списка
-        intersections.sort()
-        # 3. Выделение интервалов для закраски (парами)
-        for i in range(0, len(intersections), 2):
-            if i + 1 < len(intersections):
-                x_start = int(round(intersections[i]))
-                x_end = int(round(intersections[i + 1]))
-                # Тут закрашиваем пиксели от x_start до x_end на строке y
-                print(f'Закрашиваем от x={x_start} до x={x_end} на строке y={y}')'''
+canvas = tk.Canvas(root, width=800, height=600, bg="white")
+canvas.pack()
 
-    # 1️⃣ Построить Edge Table (ET)
-    edges = []
-    n = len(polygon)
-    for i in range(n):
-        p1 = polygon[i]
-        p2 = polygon[(i + 1) % n]
-        if p1[1] != p2[1]:  # исключаем горизонтальные рёбра
-            if p1[1] < p2[1]:
-                y0, x0, y1, x1 = p1[1], p1[0], p2[1], p2[0]
-            else:
-                y0, x0, y1, x1 = p2[1], p2[0], p1[1], p1[0]
-            inv_slope = (x1 - x0) / (y1 - y0)
-            edges.append({'y_min': y0, 'y_max': y1, 'x': x0, 'inv_slope': inv_slope})
-    # Сортируем Edge Table по y_min
-    ET = sorted(edges, key=lambda e: e['y_min'])
-    # 2️⃣ Определяем диапазон y
-    y_min = min(e['y_min'] for e in ET)
-    y_max = max(e['y_max'] for e in ET)
-    AET = []  # Активная таблица рёбер
-    # 3️⃣ Основной цикл по сканирующим строкам
-    for y in range(y_min, y_max):
-        # Добавляем рёбра, начинающиеся на текущей строке
-        while ET and ET[0]['y_min'] == y:
-            AET.append(ET.pop(0))
-        # Удаляем рёбра, у которых y_max == y (закончились)
-        AET = [edge for edge in AET if edge['y_max'] > y]
-        # Сортируем AET по текущему x
-        AET.sort(key=lambda e: e['x'])
-        # 4️⃣ Рисуем интервалы парами рёбер
-        for i in range(0, len(AET), 2):
-            if i + 1 >= len(AET):
-                break  # защита от непарных рёбер
-            x_start = int(round(AET[i]['x']))
-            x_end = int(round(AET[i + 1]['x']))
-            print(f'Закрашиваем от x={x_start} до x={x_end} на строке y={y}')
-            '''filling_points = bresenham_line(x_start, y, x_end, y)
-            for point in filling_points:
-                point.shade = 0.5  # для визуальной заливки
-            points += filling_points'''
-        # 5️⃣ Обновляем x для всех рёбер в AET
-        for edge in AET:
-            edge['x'] += edge['inv_slope']
+# Кнопка переключения отображения скрытых граней
+show_hidden_faces = tk.BooleanVar(value=True)
 
 
-def bresenham_line(x0, y0, x1, y1):
-    points = []
-    x =x0
-    y = y0
-    dx = abs(x1 - x0)
-    dy = abs(y1 - y0)
-    s1 = 1 if x0 < x1 else -1
-    s2 = 1 if y0 < y1 else -1
-    c=0
-    if dy>dx:
-        t =dx
-        dx=dy
-        dy=t
-        c=1
-    else:
-        c=0
-    e=2*dy-dx
-    i = 1
-    while i <=dx:
-        points.append({'x': int(x), 'y': int(y),'shade':1})
-        while e>=0:
-            if c==1:
-                x =x+s1
-            else:
-                y = y+s2
-            e = e-2*dx
-        if c==1:
-            y = y+s2
-        else:
-            x=x+s1
-        e=e+2*dy
-        i+=1
-    return points
+def toggle_faces():
+    show_hidden_faces.set(not show_hidden_faces.get())
+    btn.config(text="Показать все грани" if not show_hidden_faces.get() else "Скрыть невидимые грани")
+    draw_cube()
 
-from collections import deque
+btn = tk.Button(root, text="Скрыть невидимые грани", command=toggle_faces)
+btn.pack()
 
-def point_in_polygon(point, polygon):
-    """Проверка, лежит ли точка внутри полигона методом трассировки луча"""
-    x, y = point
-    inside = False
-    n = len(polygon)
-    for i in range(n):
-        xi, yi = polygon[i]
-        xj, yj = polygon[(i + 1) % n]
-        if ((yi > y) != (yj > y)):
-            x_intersect = (xj - xi) * (y - yi) / (yj - yi + 1e-10) + xi
-            if x < x_intersect:
-                inside = not inside
-    return inside
+# Куб
+cube = {
+    "size": 100,
+    "position": [0, 0, 0],
+    "rotation": [0.5, -0.5, 0.5]
+}
 
-def seed_fill_auto(polygon, width, height):
-    """Алгоритм заливки полигона с затравкой"""
-    
-    # 1️⃣ Вычисляем центроид полигона (среднюю точку)
-    avg_x = sum(p[0] for p in polygon) / len(polygon)
-    avg_y = sum(p[1] for p in polygon) / len(polygon)
-    seed_point = (int(avg_x), int(avg_y))
+is_dragging = False
+last_mouse_pos = [0, 0]
 
-    # 2️⃣ Проверяем, внутри ли точка (если нет, ищем ближайшую точку внутри)
-    if not point_in_polygon(seed_point, polygon):
-        # Ищем ближайшую точку внутри полигона
-        for dy in range(1, max(width, height)):
-            for dx in range(-dy, dy + 1):
-                test_point = (seed_point[0] + dx, seed_point[1] + dy)
-                if 0 <= test_point[0] < width and 0 <= test_point[1] < height:
-                    if point_in_polygon(test_point, polygon):
-                        seed_point = test_point
-                        break
-            else:
-                continue
-            break
+def rotate_point(p, rotation):
+    x, y, z = p
+    rx, ry, rz = rotation
 
-    print(f"Начинаем заливку с точки: {seed_point}")
+    # Вращение по X
+    cosx, sinx = math.cos(rx), math.sin(rx)
+    y, z = y * cosx - z * sinx, y * sinx + z * cosx
 
-    # 3️⃣ Заливаем область с затравкой (используем стек для 4-связности)
-    filled = set()
-    stack = deque()
-    stack.append(seed_point)
+    # Вращение по Y
+    cosy, siny = math.cos(ry), math.sin(ry)
+    x, z = x * cosy + z * siny, -x * siny + z * cosy
 
-    points = []
+    # Вращение по Z
+    cosz, sinz = math.cos(rz), math.sin(rz)
+    x, y = x * cosz - y * sinz, x * sinz + y * cosz
 
-    while stack:
-        x, y = stack.pop()
-        if (x, y) in filled or not (0 <= x < width and 0 <= y < height):
-            continue
-        
-        if point_in_polygon((x, y), polygon):
-            filled.add((x, y))
-            points.append({'x': x, 'y': y, 'shade': 0.5})  # Добавляем точку в список заливки
+    return [x, y, z]
 
-            # Добавляем соседние точки в стек (4-связность)
-            stack.append((x + 1, y))
-            stack.append((x - 1, y))
-            stack.append((x, y + 1))
-            stack.append((x, y - 1))
+drawn_edges_coords = []
 
-    print(f"Всего добавлено точек: {len(points)}")
-    
-    return points
+def draw_cube():
+    global drawn_edges_coords
+    drawn_edges_coords = []  # очищаем перед отрисовкой
+    canvas.delete("all")
+    size = cube["size"] / 2
 
-# Пример полигона
-polygon = [[0,0], [3,3], [5,1], [9,5], [9,0]]
-polygon = [[1,1], [1,10], [8,10], [8,3], [5,5]]
-result = seed_fill_auto(polygon, 800, 600)
+    vertices = [
+        [-size, -size, -size],
+        [size, -size, -size],
+        [size, size, -size],
+        [-size, size, -size],
+        [-size, -size, size],
+        [size, -size, size],
+        [size, size, size],
+        [-size, size, size]
+    ]
+
+    rotated = [rotate_point(v, cube["rotation"]) for v in vertices]
+    projected = [[400 + x, 300 - y, z] for x, y, z in rotated]
+
+    faces = [
+        {"vertices": [0, 1, 2, 3], "normal": [0, 0, -1], "color": "#6495ED"},
+        {"vertices": [4, 5, 6, 7], "normal": [0, 0, 1],  "color": "#4169E1"},
+        {"vertices": [1, 5, 6, 2], "normal": [1, 0, 0],  "color": "#4169E1"},
+        {"vertices": [0, 4, 7, 3], "normal": [-1, 0, 0], "color": "#4682B4"},
+        {"vertices": [3, 2, 6, 7], "normal": [0, 1, 0],  "color": "#1E90FF"},
+        {"vertices": [0, 1, 5, 4], "normal": [0, -1, 0], "color": "#6495ED"}
+    ]
+
+    # Вычисляем среднюю глубину каждой грани
+    for face in faces:
+        z_sum = sum(projected[i][2] for i in face["vertices"])
+        face["avg_z"] = z_sum / len(face["vertices"])
+
+    # Сортируем грани по глубине (от дальних к ближним)
+    faces_sorted = sorted(faces, key=lambda f: f["avg_z"], reverse=True)
+
+    # 1. Рисуем залитые грани (без контура)
+    for face in faces_sorted:
+        n = rotate_point(face["normal"], cube["rotation"])
+        dot = n[2] * -1  # Вектор взгляда (0, 0, -1)
+        visible = dot > 0
+
+        if show_hidden_faces.get() or visible:
+            pts = [projected[i][:2] for i in face["vertices"]]
+            canvas.create_polygon(pts, fill=face["color"], outline="")  # Без контура
+
+    # 2. Рисуем ребра (контуры) граней в обратном порядке (от ближних к дальним)
+    drawn_edges = set()
+
+    for face in reversed(faces_sorted):
+        n = rotate_point(face["normal"], cube["rotation"])
+        dot = n[2] * -1
+        visible = dot > 0
+
+        if show_hidden_faces.get() or visible:
+            verts = face["vertices"]
+            for i in range(len(verts)):
+                v1 = verts[i]
+                v2 = verts[(i + 1) % len(verts)]
+                edge_key = tuple(sorted((v1, v2)))
+                if edge_key not in drawn_edges:
+                    drawn_edges.add(edge_key)
+                    p1 = projected[v1][:2]
+                    p2 = projected[v2][:2]
+                    canvas.create_line(*p1, *p2, fill="black", width=2)
+                    # Сохраняем координаты ребра
+                    drawn_edges_coords.append((p1, p2))
+    print(f"{drawn_edges_coords}\n")
+
+# === Обработка мыши ===
+
+def on_mouse_down(event):
+    global is_dragging, last_mouse_pos
+    is_dragging = True
+    last_mouse_pos = [event.x, event.y]
+
+def on_mouse_up(event):
+    global is_dragging
+    is_dragging = False
+
+def on_mouse_move(event):
+    global last_mouse_pos
+    if not is_dragging:
+        return
+    dx = event.x - last_mouse_pos[0]
+    dy = event.y - last_mouse_pos[1]
+    cube["rotation"][1] += dx * 0.01
+    cube["rotation"][0] += dy * 0.01
+    last_mouse_pos = [event.x, event.y]
+    draw_cube()
+
+canvas.bind("<ButtonPress-1>", on_mouse_down)
+canvas.bind("<ButtonRelease-1>", on_mouse_up)
+canvas.bind("<B1-Motion>", on_mouse_move)
+
+# Первая отрисовка
+draw_cube()
+root.mainloop()

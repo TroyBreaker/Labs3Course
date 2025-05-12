@@ -102,50 +102,6 @@ def wu_line(x0, y0, x1, y1):
 
     return points
 
-'''
-def fpart(x):
-    return x - int(x)
-
-def wu_line(x0, y0, x1, y1):
-    points = []
-    if x1<x0:
-        t=x0
-        x0=x1
-        x1=t
-        t=y0
-        y0=y1
-        y1=t
-    dx=x1-x0
-    dy=y1-y0
-    gradient = dy/dx
-
-    xend = int(x0)
-    yend = y0 + gradient * (xend-x0)
-    xgap=1-fpart(x0+0.5)
-    xpxl1=xend
-    ypxl1=int(yend)
-    points.append({'x': xpxl1, 'y': ypxl1,'shade':(1-fpart(yend)*xgap)})
-    points.append({'x': xpxl1, 'y': ypxl1+1,'shade':fpart(yend)*xgap})
-    intery=yend+gradient
-
-    xend = int(x1)
-    yend = y1 + gradient * (xend-x1)
-    xgap=fpart(x1+0.5)
-    xpxl2=xend
-    ypxl2=int(yend)
-    points.append({'x': xpxl2, 'y': ypxl2,'shade':(1-fpart(yend)*xgap)})
-    points.append({'x': xpxl2, 'y': ypxl2+1,'shade':fpart(yend)*xgap})
-
-    x = xpxl1 + 1
-    while x <= xpxl2 - 1:
-        points.append({'x': x, 'y': int(intery),'shade':(1-fpart(intery))})
-        points.append({'x': x, 'y': int(intery) + 1,'shade':fpart(intery)})
-        intery = intery + gradient
-        x += 1
-
-    return points
-'''
-
 def ellipse_curve(x0, y0, a, b):
     points = []
     x = 0
@@ -545,6 +501,316 @@ def scanline(polygon):
 
     return points
 
+
+import numpy as np
+from scipy.spatial import Delaunay, Voronoi
+
+def delaunay_triangulation(points):
+    return_points = []
+    points_np = np.array(points)
+    tri = Delaunay(points_np)
+    # Преобразуем каждый треугольник из numpy.array в обычный список
+    triangles_coords = [points_np[triangle].tolist() for triangle in tri.simplices]
+    for tri in triangles_coords:
+        for i in range(3):
+            x0, y0 = tri[i]
+            x1, y1 = tri[(i+1)%3]
+            return_points += bresenham_line(x0, y0, x1, y1)
+    return return_points
+
+def line_intersection(p0, p1, p2, p3):
+    """
+    Пересечение отрезков p0p1 и p2p3.
+    Возвращает точку пересечения или None.
+    """
+    s10 = p1 - p0
+    s32 = p3 - p2
+
+    denom = s10[0]*s32[1] - s32[0]*s10[1]
+    if denom == 0:
+        return None  # Параллельны
+
+    denom_is_positive = denom > 0
+
+    s02 = p0 - p2
+    s_numer = s10[0]*s02[1] - s10[1]*s02[0]
+    t_numer = s32[0]*s02[1] - s32[1]*s02[0]
+
+    if (s_numer < 0) == denom_is_positive:
+        return None  # Нет пересечения
+    if (t_numer < 0) == denom_is_positive:
+        return None
+    if (s_numer > denom) == denom_is_positive:
+        return None
+    if (t_numer > denom) == denom_is_positive:
+        return None
+
+    t = t_numer / denom
+    intersection = p0 + t * s10
+    return intersection
+
+def clip_ray_to_rectangle(p, direction, xmin, xmax, ymin, ymax):
+    """
+    Обрезать луч (p + t*direction, t>=0) по прямоугольнику.
+    Возвращает точку пересечения с границей прямоугольника.
+    """
+    intersections = []
+
+    rect_lines = [
+        (np.array([xmin, ymin]), np.array([xmax, ymin])),  # низ
+        (np.array([xmax, ymin]), np.array([xmax, ymax])),  # право
+        (np.array([xmax, ymax]), np.array([xmin, ymax])),  # верх
+        (np.array([xmin, ymax]), np.array([xmin, ymin])),  # лево
+    ]
+
+    for p0, p1 in rect_lines:
+        inter = line_intersection(p, p + direction*1e6, p0, p1)
+        if inter is not None:
+            # Проверяем, что точка лежит в направлении луча (t>=0)
+            t = np.dot(inter - p, direction)
+            if t >= 0:
+                intersections.append(inter)
+
+    if not intersections:
+        return None
+
+    # Выбираем ближайшую точку пересечения
+    distances = [np.linalg.norm(inter - p) for inter in intersections]
+    min_index = np.argmin(distances)
+    return intersections[min_index]
+
+def voronoi_segments_in_rectangle(points, a, b):
+    try:
+        points = np.array(points)
+        vor = Voronoi(points)
+        segments = []
+        return_points = []
+
+        xmin, xmax = 0, a
+        ymin, ymax = 0, b
+
+        for (p1_idx, p2_idx), (v1_idx, v2_idx) in zip(vor.ridge_points, vor.ridge_vertices):
+            if v1_idx >= 0 and v2_idx >= 0:
+                # Конечное ребро
+                p1 = vor.vertices[v1_idx]
+                p2 = vor.vertices[v2_idx]
+
+                # Обрезаем отрезок по прямоугольнику (если нужно)
+                # Проверим, что хотя бы часть отрезка внутри прямоугольника
+                if (xmin <= p1[0] <= xmax and ymin <= p1[1] <= ymax) or \
+                   (xmin <= p2[0] <= xmax and ymin <= p2[1] <= ymax):
+                    # Можно просто добавить отрезок, т.к. он внутри или пересекает
+                    segments.append((tuple(p1), tuple(p2)))
+                else:
+                    # Можно попытаться обрезать, но обычно такие ребра не нужны
+                    pass
+
+            else:
+                # Бесконечное ребро
+                # Найдём конечную вершину
+                if v1_idx == -1:
+                    v_finite = v2_idx
+                else:
+                    v_finite = v1_idx
+
+                finite_vertex = vor.vertices[v_finite]
+
+                # Точки, породившие ребро
+                point1 = vor.points[p1_idx]
+                point2 = vor.points[p2_idx]
+
+                # Вектор между точками
+                dp = point2 - point1
+                # Нормаль к ребру (перпендикуляр)
+                n = np.array([-dp[1], dp[0]])
+                n /= np.linalg.norm(n)
+
+                # Направление луча должно быть в сторону, где находится бесконечная вершина
+                # Проверим направление: если вектор от finite_vertex в сторону точки n ближе к центру
+                midpoint = (point1 + point2) / 2
+                direction = n
+
+                # Проверим, что направление в сторону бесконечности
+                # Для этого проверим, что точка finite_vertex + direction далеко от центра точек
+                center = points.mean(axis=0)
+                if np.dot(finite_vertex - center, direction) < 0:
+                    direction = -direction
+
+                # Найдём пересечение луча с прямоугольником
+                intersection = clip_ray_to_rectangle(finite_vertex, direction, xmin, xmax, ymin, ymax)
+                if intersection is not None:
+                    segments.append((tuple(finite_vertex), tuple(intersection)))
+
+        for seg in segments:
+            x0, y0 = seg[0]
+            x1, y1 = seg[1]
+            return_points += bresenham_line(x0, y0, x1, y1)
+    except Exception as e:
+        print('Ошибка:',e)
+
+    return return_points
+
+
+INSIDE, LEFT, RIGHT, BOTTOM, TOP = 0, 1, 2, 4, 8
+
+def compute_out_code(x, y, xmin, ymin, xmax, ymax):
+    code = INSIDE
+    if x < xmin:
+        code |= LEFT
+    elif x > xmax:
+        code |= RIGHT
+    if y < ymin:
+        code |= BOTTOM
+    elif y > ymax:
+        code |= TOP
+    return code
+
+def cohen_sutherland_clip(p1, p2, segments):
+    # Автоматическое определение границ прямоугольника
+    xmin = min(p1[0], p2[0])
+    xmax = max(p1[0], p2[0])
+    ymin = min(p1[1], p2[1])
+    ymax = max(p1[1], p2[1])
+
+    clipped_segments = []
+    return_points = []
+
+    for segment in segments:
+        x1, y1 = segment[0]
+        x2, y2 = segment[1]
+
+        out_code1 = compute_out_code(x1, y1, xmin, ymin, xmax, ymax)
+        out_code2 = compute_out_code(x2, y2, xmin, ymin, xmax, ymax)
+
+        accept = False
+
+        while True:
+            if not (out_code1 | out_code2):
+                accept = True
+                break
+            elif out_code1 & out_code2:
+                break
+            else:
+                out_code_out = out_code1 if out_code1 else out_code2
+
+                if out_code_out & TOP:
+                    x = x1 + (x2 - x1) * (ymax - y1) / (y2 - y1)
+                    y = ymax
+                elif out_code_out & BOTTOM:
+                    x = x1 + (x2 - x1) * (ymin - y1) / (y2 - y1)
+                    y = ymin
+                elif out_code_out & RIGHT:
+                    y = y1 + (y2 - y1) * (xmax - x1) / (x2 - x1)
+                    x = xmax
+                elif out_code_out & LEFT:
+                    y = y1 + (y2 - y1) * (xmin - x1) / (x2 - x1)
+                    x = xmin
+
+                if out_code_out == out_code1:
+                    x1, y1 = x, y
+                    out_code1 = compute_out_code(x1, y1, xmin, ymin, xmax, ymax)
+                else:
+                    x2, y2 = x, y
+                    out_code2 = compute_out_code(x2, y2, xmin, ymin, xmax, ymax)
+
+        if accept:
+            clipped_segments.append([[round(x1, 2), round(y1, 2)], [round(x2, 2), round(y2, 2)]])
+
+    for seg in clipped_segments:
+        x0, y0 = seg[0]
+        x1, y1 = seg[1]
+        return_points += bresenham_line(x0, y0, x1, y1)
+
+    return return_points, clipped_segments
+
+def get_drawn_edges_coords(rotation_angles, show_hidden_faces):
+    """
+    rotation_angles: (rx, ry, rz) в радианах
+    show_hidden_faces: bool - показывать все грани или скрывать невидимые
+
+    Возвращает список ребер [(p1, p2), ...], где p1 и p2 - 2D координаты (x, y)
+    """
+    rx, ry, rz = rotation_angles
+    size = 100 / 2
+
+    return_points = []
+
+    def rotate_point(p):
+        x, y, z = p
+
+        # Вращение по X
+        cosx, sinx = math.cos(rx), math.sin(rx)
+        y, z = y * cosx - z * sinx, y * sinx + z * cosx
+
+        # Вращение по Y
+        cosy, siny = math.cos(ry), math.sin(ry)
+        x, z = x * cosy + z * siny, -x * siny + z * cosy
+
+        # Вращение по Z
+        cosz, sinz = math.cos(rz), math.sin(rz)
+        x, y = x * cosz - y * sinz, x * sinz + y * cosz
+
+        return [x, y, z]
+
+    vertices = [
+        [-size, -size, -size],
+        [size, -size, -size],
+        [size, size, -size],
+        [-size, size, -size],
+        [-size, -size, size],
+        [size, -size, size],
+        [size, size, size],
+        [-size, size, size]
+    ]
+
+    rotated = [rotate_point(v) for v in vertices]
+    projected = [[400 + x, 300 - y, z] for x, y, z in rotated]
+
+    faces = [
+        {"vertices": [0, 1, 2, 3], "normal": [0, 0, -1]},
+        {"vertices": [4, 5, 6, 7], "normal": [0, 0, 1]},
+        {"vertices": [1, 5, 6, 2], "normal": [1, 0, 0]},
+        {"vertices": [0, 4, 7, 3], "normal": [-1, 0, 0]},
+        {"vertices": [3, 2, 6, 7], "normal": [0, 1, 0]},
+        {"vertices": [0, 1, 5, 4], "normal": [0, -1, 0]}
+    ]
+
+    # Вычисляем среднюю глубину для сортировки
+    for face in faces:
+        z_sum = sum(projected[i][2] for i in face["vertices"])
+        face["avg_z"] = z_sum / len(face["vertices"])
+
+    faces_sorted = sorted(faces, key=lambda f: f["avg_z"], reverse=True)
+
+    drawn_edges = set()
+    edges_coords = []
+
+    for face in reversed(faces_sorted):
+        # Вращаем нормаль
+        n = rotate_point(face["normal"])
+        dot = n[2] * -1
+        visible = dot > 0
+
+        if show_hidden_faces or visible:
+            verts = face["vertices"]
+            for i in range(len(verts)):
+                v1 = verts[i]
+                v2 = verts[(i + 1) % len(verts)]
+                edge_key = tuple(sorted((v1, v2)))
+                if edge_key not in drawn_edges:
+                    drawn_edges.add(edge_key)
+                    p1 = projected[v1][:2]
+                    p2 = projected[v2][:2]
+                    edges_coords.append((p1, p2))
+
+    for seg in edges_coords:
+        x0, y0 = seg[0]
+        x1, y1 = seg[1]
+        return_points += bresenham_line(x0, y0, x1, y1)
+
+    return return_points
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -673,7 +939,32 @@ def handle_polygon(data):
             b = G[(i + 1) % len(G)]
             points += bresenham_line(a[0], a[1], b[0], b[1])
 
-    elif method == 'graham' or method == "jarvis":
+    elif method == 'graham':
+        start = min(G, key=lambda p: (p[1], p[0]))
+        def polar_angle(p):
+            return math.atan2(p[1] - start[1], p[0] - start[0])
+
+        def distance(p):
+            return (p[0] - start[0]) ** 2 + (p[1] - start[1]) ** 2
+
+        G.sort(key=lambda p: (polar_angle(p), distance(p)))
+        def cross(o, a, b):
+            return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+        hull = []
+        for p in G:
+            while len(hull) >= 2 and cross(hull[-2], hull[-1], p) <= 0:
+                hull.pop()
+            hull.append(p)
+
+        G = hull
+
+        for i in range(len(G)):
+            a = G[i]
+            b = G[(i + 1) % len(G)]
+            points += bresenham_line(a[0], a[1], b[0], b[1])
+
+    elif method == "jarvis":
         start = min(G, key=lambda p: (p[1], p[0]))
         def polar_angle(p):
             return math.atan2(p[1] - start[1], p[0] - start[0])
@@ -837,6 +1128,43 @@ def handle_filling_polygon(data):
         points = flood_fill_line(polygon, 800, 600)
 
     return {'points': points} 
+
+@socketio.on('triangulation_voronoi')
+def f(data):
+    coords = data['points']
+    method = data['method']
+    points = []
+    if method == "triangulation":
+        points = delaunay_triangulation(coords)
+    elif method == 'voronoi':
+        points = voronoi_segments_in_rectangle(coords, 800, 600)
+
+    return {'points': points} 
+
+@socketio.on("remove_invisible_lines")
+def f(data):
+    lines = data["lines"]
+    rectangle = data["rect"]
+    a, b = rectangle
+    points, new_lines = cohen_sutherland_clip(a,b,lines)
+
+    return {'points':points, "lines":new_lines}
+
+@socketio.on("remove_invisible_faces")
+def f(data):
+    try:
+        points = []
+        rotation = data['r']
+        is_hidden = data["is_hidden"]
+        # Углы в градусах
+        rx_deg, ry_deg, rz_deg = rotation
+        # Конвертируем в радианы
+        rotation = (math.radians(rx_deg), math.radians(ry_deg), math.radians(rz_deg))
+        points = get_drawn_edges_coords(rotation, is_hidden)
+    except Exception as e:
+        print('Ошибка:',e)
+
+    return {'points':points}
 
 @socketio.on_error_default
 def default_error_handler(e):
